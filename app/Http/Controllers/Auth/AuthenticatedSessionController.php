@@ -46,8 +46,8 @@ class AuthenticatedSessionController extends Controller
         // Do not set legacy SS_* cookies on login. Compatibility is provided
         // server-side by the `legacy.session` middleware for proxied requests.
 
-        // Check if there's a 'next' query parameter to redirect to after login
-        $next = $request->query('next');
+        // Check if there's a 'next' POST parameter to redirect to after login
+        $next = $request->input('next');
         if ($next && filter_var($next, FILTER_VALIDATE_URL) === false) {
             // Only allow relative paths, not external URLs
             $next = '/' . ltrim($next, '/');
