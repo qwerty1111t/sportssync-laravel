@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const http = require('http');
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) + 1 : 3001; // Use PORT+1 for WebSocket
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const ALLOWED_ORIGINS = [];  // Empty list: allow all origins
 const WS_TOKEN = null;  // Disabled: allow all connections
 
@@ -9,6 +9,11 @@ const WS_TOKEN = null;  // Disabled: allow all connections
 // expose a small HTTP hook (`/emit`) that server-side PHP can call to request
 // broadcasts (e.g. `new_match`) without relying on an admin browser client.
 const server = http.createServer((req, res) => {
+  if (req.method === 'GET' && req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+    return;
+  }
   if (req.method === 'POST' && req.url === '/emit') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
