@@ -12,11 +12,11 @@ RUN npm install
 COPY public/ws-server/ ./ws-server/
 
 # Expose port
-EXPOSE 3000
+EXPOSE ${PORT:-3000}
 
 # Health check
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-    CMD node -e "const http=require('http');const req=http.request({hostname:'localhost',port:3000,path:'/health'},res=>{process.exit(res.statusCode===200?0:1)});req.on('error',()=>process.exit(1));req.end();"
+    CMD node -e "const http=require('http');const req=http.request({hostname:'localhost',port:process.env.PORT||3000,path:'/health'},res=>{process.exit(res.statusCode===200?0:1)});req.on('error',()=>process.exit(1));req.end();"
 
 # Start WebSocket server
 CMD ["node", "ws-server/server.js"]
