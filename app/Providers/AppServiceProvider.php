@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use App\Models\User;
@@ -23,6 +24,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force HTTPS asset and URL generation in production behind Railway.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
+
         // Register alias for role middleware so routes can reference `ensure.role:admin`
         Route::aliasMiddleware('ensure.role', \App\Http\Middleware\EnsureRole::class);
         // Register alias for legacy session injection middleware used by proxied legacy routes
