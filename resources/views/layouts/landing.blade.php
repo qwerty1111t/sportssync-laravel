@@ -6,10 +6,9 @@
     <title>@yield('title', config('app.name', 'SportSync'))</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
-    @php $assetUrl = app()->environment('production') ? secure_asset : asset; @endphp
-    <link rel="stylesheet" href="{{ $assetUrl('landingpage.css') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ $assetUrl('favicon.svg') }}">
-    <link rel="stylesheet" href="{{ $assetUrl('chatbot.css') }}">
+    <link rel="stylesheet" href="{{ app()->environment('production') ? secure_asset('landingpage.css') : asset('landingpage.css') }}">
+    <link rel="icon" type="image/svg+xml" href="{{ app()->environment('production') ? secure_asset('favicon.svg') : asset('favicon.svg') }}">
+    <link rel="stylesheet" href="{{ app()->environment('production') ? secure_asset('chatbot.css') : asset('chatbot.css') }}">
     <meta name="theme-color" content="#FFD700">
     <script>
         // Expose the current authenticated user ID to client JS (null when guest)
@@ -223,7 +222,7 @@
     </div>
 </footer>
 
-<script src="{{ $assetUrl('landingpage.js') }}"></script>
+<script src="{{ app()->environment('production') ? secure_asset('landingpage.js') : asset('landingpage.js') }}"></script>
 <script>
     (function() {
         function shouldReloadOnBack(event) {
