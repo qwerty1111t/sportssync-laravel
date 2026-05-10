@@ -1,0 +1,13 @@
+{
+  "buildCommand": "docker build -t sportssync .",
+  "environmentVariables": {
+    "PORT": "8000",
+    "APP_DEBUG": "false",
+    "APP_ENV": "production"
+  },
+  "volumes": [
+    "/var/www/html/storage",
+    "/var/www/html/bootstrap/cache"
+  ],
+  "port": 8000
+}

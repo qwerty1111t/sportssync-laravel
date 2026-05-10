@@ -1,6 +1,6 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm
 
-# System dependencies
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libjpeg-dev \
@@ -9,10 +9,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
-    supervisor
-
-# Enable Apache rewrite
-RUN a2enmod rewrite
+    supervisor \
+    nodejs \
+    npm
 
 # Install PHP extensions
 RUN docker-php-ext-install pdo pdo_mysql gd
@@ -26,21 +25,36 @@ WORKDIR /var/www/html
 # Copy project files
 COPY . .
 
-# Install dependencies (Breeze included)
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Permissions
+# Install Node dependencies
+RUN npm install
+
+# Build frontend assets
+RUN npm run build
+
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache
 
-# Apache config (allow .htaccess)
-RUN sed -i 's/AllowOverride None/AllowOverride All/g' /etc/apache2/apache2.conf
+# Create startup script
+RUN echo '#!/bin/bash\n\
+set -e\n\
+export PORT=${PORT:-8000}\n\
+php artisan migrate --force\n\
+exec supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /usr/local/bin/startup.sh \
+    && chmod +x /usr/local/bin/startup.sh
 
 # Copy supervisor config
-COPY supervisor.conf /etc/supervisor/conf.d/supervisor.conf
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose port
-EXPOSE 80
+EXPOSE 8000 3000
 
-# Start supervisor (runs Apache + WebSockets)
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisor.conf", "-n"]
+# Health check
+HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
+
+# Start services
+CMD ["/usr/local/bin/startup.sh"]
