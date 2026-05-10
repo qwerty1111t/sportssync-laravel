@@ -52,7 +52,7 @@ Route::get('/adminlanding_page.php', function () {
         abort(500, 'Legacy admin page error');
     }
     return response($content);
-})->middleware(['auth', 'superadmin'])->name('legacy.adminlanding');
+})->middleware(['auth', 'ensure.role:superadmin'])->name('legacy.adminlanding');
 
 // Friendly alias without .php for proxied legacy admin landing
 Route::get('/adminlanding', function () {
