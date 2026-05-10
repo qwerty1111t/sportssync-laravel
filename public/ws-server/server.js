@@ -1,7 +1,7 @@
 const WebSocket = require('ws');
 const http = require('http');
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) + 1 : 3001; // Use PORT+1 for WebSocket
 const ALLOWED_ORIGINS = [];  // Empty list: allow all origins
 const WS_TOKEN = null;  // Disabled: allow all connections
 

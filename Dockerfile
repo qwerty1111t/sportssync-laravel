@@ -42,6 +42,7 @@ RUN chown -R www-data:www-data /var/www/html \
 RUN echo '#!/bin/bash\n\
 set -e\n\
 export PORT=${PORT:-8000}\n\
+echo "Starting Laravel application on port $PORT"\n\
 php artisan migrate --force\n\
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /usr/local/bin/startup.sh \
     && chmod +x /usr/local/bin/startup.sh
@@ -50,11 +51,11 @@ exec supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /usr/local/bin/st
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 # Expose port
-EXPOSE 8000 3000
+EXPOSE ${PORT:-8000}
 
 # Health check
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
 
 # Start services
 CMD ["/usr/local/bin/startup.sh"]
