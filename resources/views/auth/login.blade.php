@@ -68,6 +68,11 @@
 
         <form class="auth-form" method="POST" action="{{ route('login') }}">
             @csrf
+            
+            {{-- Preserve the 'next' parameter to redirect after login --}}
+            @if (request()->has('next'))
+                <input type="hidden" name="next" value="{{ request()->query('next') }}">
+            @endif
 
             <div class="form-group">
                 <label for="identifier">Username or Email</label>
