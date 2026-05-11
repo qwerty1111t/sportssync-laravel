@@ -257,6 +257,35 @@ function sendWithAck(msgObj, opts = {}) {
   });
 }
 
+function getWebSocketUrl() {
+  const meta = document.querySelector('meta[name="ws-url"]');
+  if (meta && meta.getAttribute('content')) {
+    return meta.getAttribute('content');
+  }
+  const host = location.hostname;
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const port = 3000;
+  return proto + '//' + host + ':' + port;
+}
+
+function safeFetchState(matchId) {
+  return fetch('state.php?match_id=' + encodeURIComponent(matchId) + '&t=' + Date.now(), { cache: 'no-store' })
+    .then(async r => {
+      const text = await r.text();
+      let data;
+      try { data = text ? JSON.parse(text) : {}; } catch (err) {
+        throw new Error('Invalid JSON response: ' + text);
+      }
+      if (!r.ok) {
+        throw new Error('HTTP ' + r.status + ' ' + (data.message || text));
+      }
+      if (!data || data.success !== true) {
+        throw new Error('API error: ' + (data && data.message ? data.message : 'No success flag'));
+      }
+      return data;
+    });
+}
+
 function publishLiveState() {
   // publish even without a DB match yet — use 0 as pending key
   const payload = { match_id: matchId, state: serializeLiveState(), client_id: _clientId };
@@ -364,26 +393,40 @@ function broadcastCanonicalState(stateObj) {
 }
 
 // Initialize a persistent WebSocket connection and message handling.
+function scheduleWsReconnect() {
+  if (window._dartsWsReconnectTimer) return;
+  window._dartsWsRetryCount = (window._dartsWsRetryCount || 0) + 1;
+  const delay = Math.min(30000, 2000 * window._dartsWsRetryCount);
+  console.warn('[WebSocket] Scheduling reconnect in ' + delay + 'ms');
+  window._dartsWsReconnectTimer = setTimeout(() => {
+    window._dartsWsReconnectTimer = null;
+    initWebSocket();
+  }, delay);
+}
+
 function initWebSocket() {
-  if (window._dartsWS) return;
+  if (window._dartsWS && window._dartsWS.readyState !== WebSocket.CLOSING && window._dartsWS.readyState !== WebSocket.CLOSED) {
+    return;
+  }
+  if (window._dartsWsConnecting) {
+    return;
+  }
+  window._dartsWsConnecting = true;
+
+  const url = getWebSocketUrl();
+  console.log('[WebSocket] initWebSocket url=' + url);
+
   try {
-    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const meta = document.querySelector('meta[name="ws-token"]');
-    const wsToken = meta ? meta.getAttribute('content') : '';
-    // Removed token from URL to allow any admin user with admin role to access and update
-    // const url = proto + '//' + location.hostname + ':3000' + (wsToken ? ('?token=' + encodeURIComponent(wsToken)) : '');
-    const url = proto + '//' + location.hostname + ':3000';
     window._dartsWS = new WebSocket(url);
     window._wsPendingCallbacks = [];
+    window._dartsWSSendQueue = window._dartsWSSendQueue || [];
 
-    // BroadcastChannel for cross-tab sync
     if (!window._dartsBC) {
       window._dartsBC = new BroadcastChannel('darts_live');
       window._dartsBC.onmessage = function(e) {
         const data = e.data;
         console.log('[BroadcastChannel] Received message: match_id=' + data.match_id + ' client_id=' + data.client_id + ' current_client=' + _clientId + ' has_state=' + !!data.state);
 
-        // Ignore self-broadcasts
         if (data.client_id === _clientId) {
           console.log('[BroadcastChannel] Ignoring self-broadcast');
           return;
@@ -406,18 +449,18 @@ function initWebSocket() {
     }
 
     window._dartsWS.addEventListener('open', function () {
-        console.log('[WebSocket] Connected to server');
-        try {
-          // flush queued messages
-          if (window._dartsWSSendQueue && window._dartsWSSendQueue.length) {
-            window._dartsWSSendQueue.forEach(q => { try { window._dartsWS.send(q); } catch(e) {} });
-            window._dartsWSSendQueue = [];
-          }
-          // join the room for this match (will re-join when matchId is set)
-          joinWebSocketRoom();
-        } catch (e) {
-          console.error('[WebSocket] Open handler error:', e);
+      window._dartsWsConnecting = false;
+      window._dartsWsRetryCount = 0;
+      console.log('[WebSocket] Connected to server');
+      try {
+        if (window._dartsWSSendQueue && window._dartsWSSendQueue.length) {
+          window._dartsWSSendQueue.forEach(q => { try { window._dartsWS.send(q); } catch(e) {} });
+          window._dartsWSSendQueue = [];
         }
+        joinWebSocketRoom();
+      } catch (e) {
+        console.error('[WebSocket] Open handler error:', e);
+      }
     });
 
     window._dartsWS.addEventListener('message', function (evt) {
@@ -425,7 +468,6 @@ function initWebSocket() {
         const msg = JSON.parse(evt.data);
         if (!msg) return;
 
-        // ACK handling for sendWithAck
         if (msg.type === 'ack' && (msg.ack_id || msg.id || msg._msg_id)) {
           const aid = msg.ack_id || msg.id || msg._msg_id;
           try {
@@ -436,12 +478,10 @@ function initWebSocket() {
           return;
         }
 
-        // server-sent canonical / cached state
         if (msg.type === 'last_state' || msg.type === 'state' || (typeof msg.type === 'string' && msg.type.endsWith('_state'))) {
           const payload = msg.payload || msg.state || null;
           console.log(`[SYNC RECEIVED] type=${msg.type} match_id=${msg.match_id} client_id=${msg.client_id} current_client=${_clientId} inputStr=${payload?.inputStr || 'N/A'} currentPlayer=${payload?.currentPlayer || 'N/A'}`);
 
-          // Ignore self-broadcasts
           if (msg.client_id === _clientId) {
             console.log('[SYNC RECEIVED] Ignoring self-broadcast from WebSocket');
             return;
@@ -457,7 +497,6 @@ function initWebSocket() {
           } else if (msg.type === 'last_state' && !payload) {
             console.log('[SYNC RECEIVED] last_state received with no payload, ignoring');
           }
-          // call any pending callbacks waiting for canonical state
           try {
             if (window._wsPendingCallbacks && window._wsPendingCallbacks.length) {
               const cbs = window._wsPendingCallbacks.splice(0);
@@ -467,7 +506,6 @@ function initWebSocket() {
           return;
         }
 
-        // generic payload handling
         if (msg.state || msg.payload) {
           const wasSuppressPublish = _suppressPublish;
           _suppressPublish = true;
@@ -479,9 +517,20 @@ function initWebSocket() {
       }
     });
 
-    window._dartsWS.addEventListener('error', function () { /* ignore */ });
-    window._dartsWS.addEventListener('close', function () { setTimeout(() => { window._dartsWS = null; }, 2000); });
-  } catch (e) {}
+    window._dartsWS.addEventListener('error', function (evt) {
+      console.error('[WebSocket] error', evt);
+    });
+    window._dartsWS.addEventListener('close', function () {
+      console.warn('[WebSocket] Closed, scheduling reconnect');
+      window._dartsWsConnecting = false;
+      window._dartsWS = null;
+      scheduleWsReconnect();
+    });
+  } catch (e) {
+    console.error('[WebSocket] initWebSocket failed:', e);
+    window._dartsWsConnecting = false;
+    scheduleWsReconnect();
+  }
 }
 
 // Periodic check to ensure WebSocket connection and room membership
@@ -983,8 +1032,7 @@ function _fetchAndBroadcastCanonical(cb) {
     }
     // WS not available or timed out — fallback to HTTP fetch
     const mid = matchId || 0;
-    fetch('state.php?match_id=' + encodeURIComponent(mid) + '&t=' + Date.now(), { cache: 'no-store' })
-      .then(r => r.json())
+    safeFetchState(mid)
       .then(js => {
         const canonical = js && js.state ? js.state : (js && js.payload ? js.payload : null);
         if (canonical) {
@@ -993,7 +1041,10 @@ function _fetchAndBroadcastCanonical(cb) {
           try { broadcastLiveState(); } catch (e) {}
         }
       })
-      .catch(() => { try { broadcastLiveState(); } catch (e) {} })
+      .catch(err => {
+        console.error('[fetchAndBroadcastCanonical] Fallback HTTP error:', err);
+        try { broadcastLiveState(); } catch (e) {}
+      })
       .finally(() => { if (cb) cb(); });
   }, 2500);
 }
@@ -1556,21 +1607,20 @@ function saveBeforeNewMatch(cb) {
   _suppressPublish = true;
   // Use the match_id from URL if available, otherwise 0
   const fetchMatchId = matchId || 0;
-  fetch('state.php?match_id=' + fetchMatchId)
-    .then(r => r.json())
+  safeFetchState(fetchMatchId)
     .then(data => {
-      if (data.state) {
+      if (data && data.state) {
         applyState(data.state);
         saveLocalState();
       } else {
         restoreLocalState();
       }
-      renderCards();
-      updateArrowBtns();
-      _suppressPublish = false;
     })
-    .catch(() => {
+    .catch(err => {
+      console.error('[INIT] state.php fetch failed:', err);
       restoreLocalState();
+    })
+    .finally(() => {
       renderCards();
       updateArrowBtns();
       _suppressPublish = false;

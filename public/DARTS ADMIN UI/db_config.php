@@ -24,14 +24,17 @@ if ($envFile && file_exists($envFile)) {
 // Railway provides DB credentials via environment variables
 // Try multiple sources: $_ENV, $_SERVER, getenv()
 $dbHost     = $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
+$dbPort     = $_ENV['DB_PORT'] ?? $_SERVER['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
+$dbSocket   = $_ENV['DB_SOCKET'] ?? $_SERVER['DB_SOCKET'] ?? getenv('DB_SOCKET') ?: null;
 $dbUsername = $_ENV['DB_USERNAME'] ?? $_SERVER['DB_USERNAME'] ?? getenv('DB_USERNAME') ?: 'root';
 $dbPassword = $_ENV['DB_PASSWORD'] ?? $_SERVER['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
 $dbName     = $_ENV['DB_DATABASE'] ?? $_SERVER['DB_DATABASE'] ?? getenv('DB_DATABASE') ?: 'sportssync';
 
 // Log the connection attempt (for debugging)
-error_log('[db_config.php] Attempting connection to ' . $dbHost . ':3306 user=' . $dbUsername . ' db=' . $dbName);
+error_log('[db_config.php] Attempting connection to ' . $dbHost . ':' . $dbPort . ' user=' . $dbUsername . ' db=' . $dbName);
 
-$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName);
+$port = intval($dbPort);
+$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName, $port, $dbSocket);
 
 if ($conn->connect_error) {
     error_log('[db_config.php] FAILED: ' . $conn->connect_error);

@@ -22,40 +22,72 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
-// Suppress display errors — keep JSON output clean
 @ini_set('display_errors', '0');
 @ini_set('log_errors', '1');
 
-// The pending-state fallback file (used when match_id is 0 / not yet saved to DB)
-$pendingFile = __DIR__ . '/darts_pending_state.json';
+function getEnvValue(string $key, $default = null) {
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') return $_ENV[$key];
+    if (isset($_SERVER[$key]) && $_SERVER[$key] !== '') return $_SERVER[$key];
+    $val = getenv($key);
+    return ($val !== false && $val !== '') ? $val : $default;
+}
 
-// Wrap database initialization in try-catch to catch connection errors
+function sendJsonError(string $message, int $code = 400, string $error = null) {
+    http_response_code($code);
+    $payload = ['success' => false, 'message' => $message];
+    if ($error) $payload['error'] = $error;
+    echo json_encode($payload);
+    exit;
+}
+
+function parseMatchId($value) {
+    if ($value === null || $value === '') {
+        return 0;
+    }
+    if (!is_numeric($value)) {
+        return null;
+    }
+    $match_id = intval($value);
+    if ($match_id < 0) {
+        return null;
+    }
+    return $match_id;
+}
+
+$pendingFile = __DIR__ . '/darts_pending_state.json';
+$envFile = realpath(__DIR__ . '/../../.env');
+if ($envFile && file_exists($envFile)) {
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+        if (strpos($line, '=') === false) {
+            continue;
+        }
+        list($key, $val) = explode('=', $line, 2);
+        $key = trim($key);
+        $val = trim($val);
+        $val = trim($val, "'\"");
+        if (getenv($key) === false) {
+            putenv("$key=$val");
+        }
+    }
+}
+
 try {
     require_once __DIR__ . '/db_config.php';
-    // Auth is only required for writes; include helpers so we can validate POST requests
     require_once __DIR__ . '/../auth.php';
 } catch (Throwable $e) {
     error_log('[state.php] Init error: ' . $e->getMessage());
-    http_response_code(500);
-    echo json_encode([
-        "success" => false, 
-        "message" => "Initialization error: " . $e->getMessage()
-    ]);
-    exit;
+    sendJsonError('Initialization error', 500, $e->getMessage());
 }
 
-// Check if $conn is set and valid
 if (!isset($conn) || !$conn) {
-    error_log('[state.php] Database connection not available');
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Database connection unavailable"
-    ]);
-    exit;
+    error_log('[state.php] Database connection unavailable');
+    sendJsonError('Database connection unavailable', 500);
 }
 
-// Detect darts_ prefix
 $prefix = '';
 try {
     $r = $conn->query("SHOW TABLES LIKE 'darts_matches'");
@@ -70,47 +102,47 @@ $matchesTable = $prefix . 'matches';
    ============================================================ */
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     try {
-        $match_id = intval($_GET['match_id'] ?? 0);
+        $matchIdInput = $_GET['match_id'] ?? null;
+        $match_id = parseMatchId($matchIdInput);
+        if ($matchIdInput !== null && $match_id === null) {
+            error_log('[state.php GET] Invalid match_id: ' . json_encode($matchIdInput));
+            sendJsonError('Invalid match_id', 400);
+        }
 
         $state = null;
-
-        // Check for current match ID if match_id is 0
         $currentMatchFile = __DIR__ . '/current_match_id.json';
         if ($match_id === 0 && file_exists($currentMatchFile)) {
             $cm = json_decode(@file_get_contents($currentMatchFile), true);
             if ($cm && isset($cm['match_id']) && $cm['match_id'] > 0) {
-                $match_id = $cm['match_id'];
+                $match_id = intval($cm['match_id']);
             }
         }
 
-        // If a real match_id is provided, try to load from DB first
         if ($match_id > 0) {
             $stmt = $conn->prepare("SELECT live_state FROM `{$matchesTable}` WHERE id=? LIMIT 1");
             if (!$stmt) {
-                throw new Exception("Prepare error: " . $conn->error);
+                throw new Exception('DB prepare failed: ' . $conn->error);
             }
             $stmt->bind_param('i', $match_id);
             if (!$stmt->execute()) {
-                throw new Exception("Execute error: " . $stmt->error);
+                throw new Exception('DB execute failed: ' . $stmt->error);
             }
             $row = $stmt->get_result()->fetch_assoc();
             $stmt->close();
-
             if ($row && !empty($row['live_state'])) {
                 $decoded = json_decode($row['live_state'], true);
                 if ($decoded) $state = $decoded;
             }
         }
 
-        // Fallback to the most recent live match in DB (newest updated_at with live_state)
         if (!$state && $match_id === 0) {
             $res = $conn->query(
                 "SELECT live_state FROM `{$matchesTable}` 
                  WHERE live_state IS NOT NULL AND live_state != '' 
                  ORDER BY updated_at DESC LIMIT 1"
             );
-            if (!$res) {
-                throw new Exception("Query error: " . $conn->error);
+            if ($res === false) {
+                throw new Exception('DB query failed: ' . $conn->error);
             }
             if ($row = $res->fetch_assoc()) {
                 $decoded = json_decode($row['live_state'], true);
@@ -118,7 +150,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             }
         }
 
-        // Final fallback — pending state file
         if (!$state && file_exists($pendingFile)) {
             $raw = @file_get_contents($pendingFile);
             if ($raw) {
@@ -131,13 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         exit;
     } catch (Throwable $e) {
         error_log('[state.php GET] Error: ' . $e->getMessage());
-        http_response_code(500);
-        echo json_encode([
-            "success" => false, 
-            "message" => "Error retrieving state",
-            "error" => substr($e->getMessage(), 0, 100)
-        ]);
-        exit;
+        sendJsonError('Error retrieving state', 500, $e->getMessage());
     }
 }
 
@@ -149,123 +174,124 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $raw  = file_get_contents('php://input');
         $data = json_decode($raw, true);
 
-        if (!$data) {
-            echo json_encode(['success' => false, 'message' => 'Invalid JSON']);
-            exit;
+        if (!is_array($data)) {
+            error_log('[state.php POST] Invalid JSON payload: ' . substr($raw, 0, 200));
+            sendJsonError('Invalid JSON', 400);
         }
 
-        $match_id = intval($data['match_id'] ?? 0);
-        $state    = $data['state'] ?? null;
-
-        if (!$state) {
-            echo json_encode(['success' => false, 'message' => 'state required']);
-            exit;
+        $matchIdInput = $data['match_id'] ?? null;
+        $match_id = parseMatchId($matchIdInput);
+        if ($matchIdInput !== null && $match_id === null) {
+            error_log('[state.php POST] Invalid match_id: ' . json_encode($matchIdInput));
+            sendJsonError('Invalid match_id', 400);
         }
 
-        // ✅ NO AUTHENTICATION GATE — Allow any admin with admin role to update state
-        // Any client making this POST is already verified at the app level before reaching here
-        // The browser-based client validates admin role; no need to re-check per user session
+        $state = $data['state'] ?? null;
+        if (!is_array($state)) {
+            error_log('[state.php POST] Missing or invalid state payload');
+            sendJsonError('state required', 400);
+        }
+
         $poster = null;
         try { $poster = currentUser(); } catch (Throwable $_) { $poster = null; }
-        // Optional: Log who posted (for debugging), but don't block based on session
-        error_log('[state.php POST] Received update: match_id=' . $match_id . ' inputStr=' . ($state['inputStr'] ?? 'N/A') . ' currentPlayer=' . ($state['currentPlayer'] ?? 'N/A') . ' poster=' . ($poster ? ($poster['username'] ?? 'unknown') : 'NOT_LOGGED_IN'));
+        error_log('[state.php POST] Received update: match_id=' . ($match_id ?? 'null') . ' poster=' . ($poster['username'] ?? 'NOT_LOGGED_IN'));
         if ($poster && isset($poster['role'])) {
             error_log('[state.php POST] State update from user: ' . ($poster['username'] ?? 'unknown') . ' role=' . $poster['role']);
         }
 
         $stateJson = json_encode($state, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($stateJson === false) {
+            throw new Exception('State encoding failed');
+        }
 
-        // ✅ SSOT SAFE ADD START — last-write-wins guard: reject POST if incoming state is older
-        // than what the server already has. This prevents a delayed/re-sent request from
-        // a slower admin client from overwriting a more recent state published by another client.
         if ($match_id > 0) {
             $_lww_stmt = $conn->prepare("SELECT live_state FROM `{$matchesTable}` WHERE id=? LIMIT 1");
             if (!$_lww_stmt) {
-                throw new Exception("Prepare error: " . $conn->error);
+                throw new Exception('DB prepare failed: ' . $conn->error);
             }
             $_lww_stmt->bind_param('i', $match_id);
             if (!$_lww_stmt->execute()) {
-                throw new Exception("Execute error: " . $_lww_stmt->error);
+                throw new Exception('DB execute failed: ' . $_lww_stmt->error);
             }
             $_lww_row = $_lww_stmt->get_result()->fetch_assoc();
             $_lww_stmt->close();
             if ($_lww_row && !empty($_lww_row['live_state'])) {
                 $_existing_st = json_decode($_lww_row['live_state'], true);
                 $_existing_ts  = isset($_existing_st['updated_at']) ? strtotime($_existing_st['updated_at']) : 0;
-                $_incoming_ts  = isset($state['updated_at'])        ? strtotime($state['updated_at'])        : 0;
+                $_incoming_ts  = isset($state['updated_at']) ? strtotime($state['updated_at']) : 0;
                 if ($_existing_ts > 0 && $_incoming_ts > 0 && $_incoming_ts < $_existing_ts) {
-                    // Incoming state is older — silently skip the DB write but still update the file
-                    // so the admin's localStorage stays consistent with the canonical server state.
                     echo json_encode(['success' => true, 'stale' => true]);
                     exit;
                 }
             }
         }
-        // ✅ SSOT SAFE ADD END
 
-        // Always write to the pending file (serves as universal latest-state fallback)
         $fileWritten = @file_put_contents($pendingFile, $stateJson, LOCK_EX);
         error_log('[state.php POST] Pending file written: ' . ($fileWritten ? 'YES' : 'NO') . ' to ' . $pendingFile);
 
-        // If we have a real match, persist into DB live_state column too
         if ($match_id > 0) {
             $stmt = $conn->prepare("UPDATE `{$matchesTable}` SET live_state=?, updated_at=NOW() WHERE id=?");
             if (!$stmt) {
                 error_log('[state.php POST] DB prepare error: ' . $conn->error);
             } else {
                 $stmt->bind_param('si', $stateJson, $match_id);
-                $exec_result = $stmt->execute();
-                error_log('[state.php POST] DB update executed: ' . ($exec_result ? 'SUCCESS' : 'FAILED - ' . $stmt->error) . ' for match_id=' . $match_id);
+                if (!$stmt->execute()) {
+                    error_log('[state.php POST] DB execute error: ' . $stmt->error);
+                } else {
+                    error_log('[state.php POST] DB update success for match_id=' . $match_id);
+                }
                 $stmt->close();
             }
         } else {
-            error_log('[state.php POST] Skipped DB update: match_id=' . $match_id . ' (not > 0)');
+            error_log('[state.php POST] Skipped DB update for match_id=' . ($match_id ?? 'null'));
         }
 
-        // ✅ BROADCAST TO ALL WEBSOCKET CLIENTS START — notify all admins in this room immediately
         try {
-            $wsUrl = 'http://localhost:3000/emit';
+            $wsBase = getEnvValue('BASKETBALL_WS_URL') ?: getEnvValue('WS_URL');
+            if ($wsBase) {
+                $wsUrl = rtrim($wsBase, '/') . '/emit';
+            } else {
+                $wsHost = getEnvValue('WS_HOST', '127.0.0.1');
+                $wsPort = getEnvValue('WS_PORT', '3000');
+                $wsUrl = 'http://' . $wsHost . ':' . $wsPort . '/emit';
+            }
             $clientId = $data['client_id'] ?? null;
             $broadcastPayload = [
-                'type'     => 'state',
+                'type' => 'state',
                 'match_id' => $match_id,
-                'payload'  => $state,
-                'client_id' => $clientId
+                'payload' => $state,
+                'client_id' => $clientId,
             ];
-            $ch = curl_init($wsUrl);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT        => 2,
-                CURLOPT_POST           => true,
-                CURLOPT_POSTFIELDS     => json_encode($broadcastPayload),
-                CURLOPT_HTTPHEADER     => ['Content-Type: application/json']
-            ]);
-            $response = @curl_exec($ch);
-            $curlError = curl_error($ch);
-            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            @curl_close($ch);
-            
-            if ($curlError) {
-                error_log('[state.php POST] Broadcast FAILED - curl error: ' . $curlError);
+            if (function_exists('curl_init')) {
+                $ch = curl_init($wsUrl);
+                curl_setopt_array($ch, [
+                    CURLOPT_RETURNTRANSFER => true,
+                    CURLOPT_TIMEOUT => 2,
+                    CURLOPT_POST => true,
+                    CURLOPT_POSTFIELDS => json_encode($broadcastPayload),
+                    CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                ]);
+                $response = @curl_exec($ch);
+                $curlError = curl_error($ch);
+                $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                @curl_close($ch);
+                if ($curlError) {
+                    error_log('[state.php POST] Broadcast failed: ' . $curlError . ' wsUrl=' . $wsUrl);
+                } else {
+                    error_log('[state.php POST] Broadcast sent: match_id=' . $match_id . ' http=' . $httpCode . ' wsUrl=' . $wsUrl . ' response=' . substr($response ?? '', 0, 100));
+                }
             } else {
-                error_log('[state.php POST] Broadcast sent to /emit: match_id=' . $match_id . ' http_code=' . $httpCode . ' response=' . substr($response ?? '', 0, 100) . ' inputStr=' . ($state['inputStr'] ?? 'N/A') . ' currentPlayer=' . ($state['currentPlayer'] ?? 'N/A'));
+                error_log('[state.php POST] Skipping broadcast: cURL unavailable');
             }
         } catch (Throwable $e) {
             error_log('[state.php POST] Broadcast exception: ' . $e->getMessage());
         }
-        // ✅ BROADCAST TO ALL WEBSOCKET CLIENTS END
 
         echo json_encode(['success' => true, 'state' => $state]);
         exit;
     } catch (Throwable $e) {
         error_log('[state.php POST] Error: ' . $e->getMessage());
-        http_response_code(500);
-        echo json_encode([
-            "success" => false, 
-            "message" => "Error saving state",
-            "error" => substr($e->getMessage(), 0, 100)
-        ]);
-        exit;
+        sendJsonError('Error saving state', 500, $e->getMessage());
     }
 }
 
