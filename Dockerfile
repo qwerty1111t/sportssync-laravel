@@ -34,6 +34,9 @@ RUN npm install
 # Build frontend assets
 RUN npm run build
 
+# Install WebSocket server dependencies
+RUN cd public/ws-server && npm install
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 775 storage bootstrap/cache

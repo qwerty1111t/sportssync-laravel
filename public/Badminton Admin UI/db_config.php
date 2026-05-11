@@ -5,14 +5,19 @@ if (defined('LARAVEL_WRAPPER')) {
     return;
 }
 
-// Database configuration - standalone legacy mode
-define('DB_HOST', 'localhost');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_NAME', 'sportssync');
+// Database configuration - load from environment (Railway) or use local defaults
+$db_host = getenv('DB_HOST') ?: 'localhost';
+$db_user = getenv('DB_USERNAME') ?: 'root';
+$db_pass = getenv('DB_PASSWORD') ?: '';
+$db_name = getenv('DB_DATABASE') ?: 'sportssync';
+
+define('DB_HOST', $db_host);
+define('DB_USER', $db_user);
+define('DB_PASS', $db_pass);
+define('DB_NAME', $db_name);
 
 mysqli_report(MYSQLI_REPORT_OFF);
-$mysqli = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+$mysqli = @new mysqli($db_host, $db_user, $db_pass, $db_name);
 if ($mysqli->connect_errno) {
     @file_put_contents(__DIR__ . '/badminton_debug.log', date('[Y-m-d H:i:s] ') . "DB connect error: " . $mysqli->connect_error . "\n", FILE_APPEND);
     http_response_code(500);
