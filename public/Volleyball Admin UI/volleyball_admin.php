@@ -1,6 +1,6 @@
 <?php
   require_once __DIR__ . '/../auth.php';
-  $user    = requireRole('admin', 'superadmin');
+  $user    = requireRole('admin', '/superadmin/login');
   $matchId = isset($_GET['match_id']) ? (int)$_GET['match_id'] : null;
 ?>
 <?php

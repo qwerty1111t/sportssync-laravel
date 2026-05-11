@@ -5,7 +5,7 @@ if (!file_exists($_base . '/db_config.php') && file_exists($_base . '/../auth.ph
 }
 require_once $_base . '/db_config.php';
 require_once $_base . '/../auth.php';
-$user = requireRole('admin', 'superadmin');
+$user = requireRole('admin', '/superadmin/login');
 
 // ── SportSync Guards ──────────────────────────────────────────
 $__sg=null;foreach([__DIR__,__DIR__.'/..',__DIR__.'/../..'] as $__d){if(file_exists($__d.'/system_guard.php')){$__sg=$__d.'/system_guard.php';break;}}if($__sg) require_once $__sg;
