@@ -10,7 +10,8 @@
     "web": {
       "buildCommand": "docker build -t sportssync .",
       "environmentVariables": {
-        "PORT": "8000",
+        "PORT": "8080",
+        "WS_PORT": "3000",
         "APP_DEBUG": "false",
         "APP_ENV": "production"
       },
@@ -20,7 +21,7 @@
       ],
       "ports": [
         {
-          "port": 8000,
+          "port": 8080,
           "public": true
         },
         {

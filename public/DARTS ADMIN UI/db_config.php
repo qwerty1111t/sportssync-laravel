@@ -4,48 +4,16 @@ if (defined('LARAVEL_WRAPPER')) {
     return;
 }
 
-// db_config.php — support both local dev and Railway production
-// Railway passes DB credentials via environment variables
+// db_config.php
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
+define('DB_NAME', 'sportssync');
 
-// Try to load Laravel's .env if available (for local dev)
-$envFile = realpath(__DIR__ . '/../../.env');
-if ($envFile && file_exists($envFile)) {
-    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        if (strpos($line, '=') !== false && strpos($line, '#') !== 0) {
-            [$key, $val] = explode('=', $line, 2);
-            $key = trim($key);
-            $val = trim(trim($val), '\'"');
-            if (!getenv($key)) putenv("$key=$val");
-        }
-    }
-}
-
-// Railway provides DB credentials via environment variables
-// Try multiple sources: $_ENV, $_SERVER, getenv()
-$dbHost     = $_ENV['DB_HOST'] ?? $_SERVER['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost';
-$dbPort     = $_ENV['DB_PORT'] ?? $_SERVER['DB_PORT'] ?? getenv('DB_PORT') ?: '3306';
-$dbSocket   = $_ENV['DB_SOCKET'] ?? $_SERVER['DB_SOCKET'] ?? getenv('DB_SOCKET') ?: null;
-$dbUsername = $_ENV['DB_USERNAME'] ?? $_SERVER['DB_USERNAME'] ?? getenv('DB_USERNAME') ?: 'root';
-$dbPassword = $_ENV['DB_PASSWORD'] ?? $_SERVER['DB_PASSWORD'] ?? getenv('DB_PASSWORD') ?: '';
-$dbName     = $_ENV['DB_DATABASE'] ?? $_SERVER['DB_DATABASE'] ?? getenv('DB_DATABASE') ?: 'sportssync';
-
-// Log the connection attempt (for debugging)
-error_log('[db_config.php] Attempting connection to ' . $dbHost . ':' . $dbPort . ' user=' . $dbUsername . ' db=' . $dbName);
-
-$port = intval($dbPort);
-$conn = new mysqli($dbHost, $dbUsername, $dbPassword, $dbName, $port, $dbSocket);
+$conn = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
 
 if ($conn->connect_error) {
-    error_log('[db_config.php] FAILED: ' . $conn->connect_error);
-    http_response_code(500);
-    die(json_encode([
-        "success" => false, 
-        "message" => "Database connection failed",
-        "error" => substr($conn->connect_error, 0, 100)
-    ]));
+    die(json_encode(["success" => false, "message" => "Connection failed: " . $conn->connect_error]));
 }
-
 $conn->set_charset("utf8mb4");
-error_log('[db_config.php] Connected successfully to ' . $dbHost . ':' . $dbName);
 ?>

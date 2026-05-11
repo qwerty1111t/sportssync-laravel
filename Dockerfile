@@ -31,9 +31,6 @@ RUN composer install --no-dev --optimize-autoloader
 # Install Node dependencies
 RUN npm install
 
-# Install WebSocket server dependencies
-RUN cd /var/www/html/public/ws-server && npm install
-
 # Build frontend assets
 RUN npm run build
 
@@ -44,7 +41,8 @@ RUN chown -R www-data:www-data /var/www/html \
 # Create startup script
 RUN echo '#!/bin/bash\n\
 set -e\n\
-export PORT=${PORT:-8000}\n\
+export PORT=${PORT:-8080}\n\
+export WS_PORT=${WS_PORT:-3000}\n\
 echo "Starting Laravel application on port $PORT"\n\
 php artisan optimize:clear\n\
 php artisan migrate --force\n\
@@ -54,12 +52,12 @@ exec supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /usr/local/bin/st
 # Copy supervisor config
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Expose ports (Laravel on 8000, WebSocket on 3000)
-EXPOSE ${PORT:-8000} 3000
+# Expose ports
+EXPOSE 8080 3000
 
 # Health check
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:${PORT:-8000}/ || exit 1
+    CMD curl -f http://localhost:8080/ || exit 1
 
 # Start services
 CMD ["/usr/local/bin/startup.sh"]
