@@ -41,31 +41,11 @@ Route::middleware(['auth', 'ensure.role:superadmin', \App\Http\Middleware\Preven
     Route::post('/superadmin/users/promote', [SuperadminController::class, 'promote'])->name('superadmin.users.promote');
 });
 
-// Legacy admin landing proxied through Laravel so middleware can enforce auth + role
+// Legacy admin landing proxied through Laravel should use the dedicated legacy route
+// defined in routes/legacy.php so legacy.session and wrapper setup are applied.
 Route::get('/adminlanding_page.php', function () {
-    ob_start();
-    try {
-        include public_path('adminlanding_page.php');
-        $content = ob_get_clean();
-    } catch (\Throwable $e) {
-        if (ob_get_level()) ob_end_clean();
-        abort(500, 'Legacy admin page error');
-    }
-    return response($content);
-})->middleware(['auth', 'ensure.role:superadmin'])->name('legacy.adminlanding');
-
-// Friendly alias without .php for proxied legacy admin landing
-Route::get('/adminlanding', function () {
-    ob_start();
-    try {
-        include public_path('adminlanding_page.php');
-        $content = ob_get_clean();
-    } catch (\Throwable $e) {
-        if (ob_get_level()) ob_end_clean();
-        abort(500, 'Legacy admin page error');
-    }
-    return response($content);
-})->middleware(['auth', 'superadmin'])->name('legacy.adminlanding.short');
+    return redirect('/adminlanding');
+})->middleware(['auth', 'superadmin'])->name('legacy.adminlanding.page');
 
 require __DIR__.'/legacy.php';
 require __DIR__.'/auth.php';

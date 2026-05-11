@@ -8,7 +8,8 @@ use App\Http\Controllers\BasketballViewerController;
 use App\Http\Controllers\TableTennisAdminController;
 use App\Http\Controllers\TableTennisViewerController;
 use App\Http\Controllers\DartsAdminController;
-use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\VolleyballAdminController;
+use App\Http\Controllers\VolleyballViewerController;
 
 // All legacy admin UI access must go through Laravel and require auth + legacy.session
 Route::middleware(['auth', 'legacy.session'])->group(function () {
@@ -23,9 +24,6 @@ Route::middleware(['auth', 'legacy.session'])->group(function () {
     Route::get('/TABLE TENNIS ADMIN UI/viewer', [TableTennisViewerController::class, 'show'])->name('tabletennis.viewer');
 
     Route::get('/DARTS ADMIN UI', [DartsAdminController::class, 'index'])->name('darts.admin');
-
-    Route::get('/analytics', [AnalyticsController::class, 'analytics'])->name('analytics');
-    Route::get('/players', [AnalyticsController::class, 'players'])->name('players');
 
     Route::get('/Volleyball Admin UI', [VolleyballAdminController::class, 'index'])->name('volleyball.admin');
     Route::get('/Volleyball Admin UI/viewer', [VolleyballViewerController::class, 'show'])->name('volleyball.viewer');

@@ -20,21 +20,34 @@
           $r = strtolower((string)($user->role ?? ''));
           $isAdmin = in_array($r, ['admin', 'superadmin', 'scorekeeper'], true);
         }
-        $bbRoute = $isAdmin ? route('basketball.admin') : route('basketball.viewer');
-        $bbNext = $user ? $bbRoute : route('login') . '?next=' . urlencode($bbRoute);
-        $vbRoute = $isAdmin ? route('volleyball.admin') : route('volleyball.viewer');
-        $vbNext = $user ? $vbRoute : route('login') . '?next=' . urlencode($vbRoute);
-        $bdRoute = $isAdmin ? route('badminton.admin') : route('badminton.viewer');
-        $bdNext = $user ? $bdRoute : route('login') . '?next=' . urlencode($bdRoute);
-        $ttRoute = $isAdmin ? route('tabletennis.admin') : route('tabletennis.viewer');
-        $ttNext = $user ? $ttRoute : route('login') . '?next=' . urlencode($ttRoute);
-        $drRoute = route('darts.admin');
-        $drNext = $user ? $drRoute : route('login') . '?next=' . urlencode($drRoute);
 
-        $analyticsRoute = route('analytics');
-        $analyticsNext = $user ? $analyticsRoute : route('login') . '?next=' . urlencode($analyticsRoute);
-        $playersRoute = route('players');
-        $playersNext = $user ? $playersRoute : route('login') . '?next=' . urlencode($playersRoute);
+        // Logged-in users go directly to the role-correct file.
+        // Guests pass a sport key so the controller resolves the correct path after login.
+        $bbLink = $isAdmin ? 'Basketball%20Admin%20UI/index.php' : 'Basketball%20Admin%20UI/basketball_viewer.php';
+        $bbNext = $user ? $bbLink : route('login') . '?next=sport:basketball';
+
+        $vbLink = $isAdmin ? 'Volleyball%20Admin%20UI/volleyball_admin.php' : 'Volleyball%20Admin%20UI/volleyball_viewer.php';
+        $vbNext = $user ? $vbLink : route('login') . '?next=sport:volleyball';
+
+        $bdLink = $isAdmin ? 'Badminton%20Admin%20UI/badminton_admin.php' : 'Badminton%20Admin%20UI/badminton_viewer.php';
+        $bdNext = $user ? $bdLink : route('login') . '?next=sport:badminton';
+
+        $ttLink = $isAdmin ? 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_admin.php' : 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_viewer.php';
+        $ttNext = $user ? $ttLink : route('login') . '?next=sport:tabletennis';
+
+        $dartsViewerPath = public_path('DARTS ADMIN UI/viewer.php');
+        if (file_exists($dartsViewerPath)) {
+            $viewerHref = 'DARTS%20ADMIN%20UI/viewer.php';
+            $adminHref  = 'DARTS%20ADMIN%20UI/index.php';
+        } else {
+            $viewerHref = '/admin/darts/viewer';
+            $adminHref  = '/admin/darts';
+        }
+        $drLink = $isAdmin ? $adminHref : $viewerHref;
+        $drNext = $user ? $drLink : route('login') . '?next=sport:darts';
+
+        $analyticsHref = $user ? 'analytics/analytics.php' : route('login') . '?next=sport:analytics';
+        $profilesHref  = $user ? 'analytics/players.php' : route('login') . '?next=sport:players';
       @endphp
 
       <a href="{{ $bbNext }}" class="sport-card reveal" data-sport="basketball">
@@ -92,7 +105,7 @@
         <div class="feature-line"></div>
       </div>
 
-      <a href="{{ $analyticsNext }}" class="feature-card reveal" data-feature="analytics">
+      <a href="{{ $analyticsHref }}" class="feature-card reveal" data-feature="analytics">
         <div class="feature-icon">📊</div>
         <h3 class="feature-title">Analytics Dashboard</h3>
         <p class="feature-desc">Visual stats, trends, and performance charts that reveal patterns invisible to the naked eye.</p>
@@ -113,7 +126,7 @@
         <div class="feature-line"></div>
       </div>
 
-      <a href="{{ $playersNext }}" class="feature-card reveal" data-feature="profiles">
+      <a href="{{ $profilesHref }}" class="feature-card reveal" data-feature="profiles">
         <div class="feature-icon">👤</div>
         <h3 class="feature-title">Player Profiles</h3>
         <p class="feature-desc">Track individual and team statistics across every match, tournament, and season.</p>
@@ -141,7 +154,7 @@
       @if($role === 'superadmin')
         <h2 class="cta-title">Superadmin Console</h2>
         <p class="cta-sub">Access the legacy admin landing page and full system controls.</p>
-        <a href="{{ route('legacy.adminlanding') }}" class="btn btn-cta">Open Admin Landing</a>
+        <a href="/adminlanding_page.php" class="btn btn-cta">Open Admin Landing</a>
       @elseif(in_array($role, ['admin','scorekeeper']))
         <h2 class="cta-title">SportSync Admin Dashboard</h2>
         <p class="cta-sub">Open your dashboard to start scoring and analyzing matches.</p>

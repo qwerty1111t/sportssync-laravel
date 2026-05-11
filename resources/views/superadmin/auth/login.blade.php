@@ -59,10 +59,7 @@
 
         <form class="auth-form" method="POST" action="{{ route('superadmin.login') }}">
             @csrf
-            {{-- Preserve the 'next' parameter to redirect after login --}}
-            @if (request()->has('next'))
-                <input type="hidden" name="next" value="{{ request()->query('next') }}">
-            @endif
+            <input type="hidden" name="next" value="{{ request()->query('next') }}">
 
             <div class="form-group">
                 <label for="identifier">Username or Email</label>

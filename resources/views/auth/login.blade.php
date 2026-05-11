@@ -18,7 +18,15 @@
         (function(){
             var checkUrl = '{{ url('/auth/check') }}';
             function redirectToDashboard() {
-                try { window.location.replace("{{ route('dashboard') }}"); } catch(e) {}
+                try {
+                    var params = new URLSearchParams(window.location.search);
+                    var next = params.get('next');
+                    if (next && next.trim() !== '') {
+                        window.location.replace('/' + next.split('/').map(encodeURIComponent).join('/'));
+                    } else {
+                        window.location.replace("{{ route('dashboard') }}");
+                    }
+                } catch(e) {}
             }
             function doCheck() {
                 try {
@@ -68,11 +76,7 @@
 
         <form class="auth-form" method="POST" action="{{ route('login') }}">
             @csrf
-            
-            {{-- Preserve the 'next' parameter to redirect after login --}}
-            @if (request()->has('next'))
-                <input type="hidden" name="next" value="{{ request()->query('next') }}">
-            @endif
+            <input type="hidden" name="next" value="{{ request('next') }}">
 
             <div class="form-group">
                 <label for="identifier">Username or Email</label>

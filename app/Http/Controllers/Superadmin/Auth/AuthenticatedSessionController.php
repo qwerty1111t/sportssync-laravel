@@ -24,49 +24,71 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
+        // Authenticate first — throws ValidationException on failure.
         $request->authenticate();
 
-        // Ensure the authenticated user is a superadmin
+        // Immediately capture the user before any session operation.
         $user = Auth::guard('web')->user();
-        if (! $user || (strtolower((string)($user->role ?? '')) !== 'superadmin')) {
-            try { Auth::guard('web')->logout(); } catch (\Throwable $_) {}
+
+        // Role gate — must be superadmin.
+        if (! $user || strtolower((string)($user->role ?? '')) !== 'superadmin') {
+            Auth::guard('web')->logout();
+            // Invalidate without regenerateToken so the form CSRF stays valid
+            // for the redirect back — prevents 419 on the error page.
             $request->session()->invalidate();
             $request->session()->regenerateToken();
             return back()->withErrors(['identifier' => 'Invalid credentials or not authorized as superadmin.']);
         }
 
+        // Regenerate session AFTER role is confirmed — prevents fixation.
         $request->session()->regenerate();
 
-        // Set lightweight legacy compatibility cookies so direct requests
-        // to public legacy PHP files (e.g. /adminlanding_page.php) can
-        // authenticate the Laravel user.
+        // Set legacy compatibility cookies for /public legacy PHP files.
         try {
-            $minutes = 60 * 8; // 8 hours
-            Cookie::queue('SS_USER_ID', (string) intval($user->id), $minutes);
-            Cookie::queue('SS_ROLE', $user->role ?? 'viewer', $minutes);
+            $minutes = 60 * 8;
+            \Illuminate\Support\Facades\Cookie::queue('SS_USER_ID', (string) intval($user->id), $minutes);
+            \Illuminate\Support\Facades\Cookie::queue('SS_ROLE', $user->role ?? 'viewer', $minutes);
             try {
                 $expire = time() + ($minutes * 60);
                 setcookie('SS_USER_ID', (string) intval($user->id), $expire, '/');
                 setcookie('SS_ROLE', $user->role ?? 'viewer', $expire, '/');
-            } catch (\Throwable $_) { /* non-fatal */ }
-        } catch (\Throwable $_) { /* non-fatal */ }
+            } catch (\Throwable $_) {}
+        } catch (\Throwable $_) {}
 
-        // Honor legacy `next` parameter when present. If it references
-        // the admin landing, send the user to the direct legacy file so
-        // they land on the expected page.
+        // Resolve ?next= — support sport: keys and legacy raw paths.
         $next = trim((string) ($request->input('next') ?? $request->query('next') ?? ''));
-        if ($next !== '') {
-            $n = strtolower($next);
-            if (str_contains($n, 'adminlanding')) {
-                return redirect('/adminlanding_page.php');
-            }
-            if (preg_match('#admin ui|admin.php|viewer.php#i', $n)) {
-                $clean = '/' . ltrim($next, '/');
-                return redirect($clean);
+
+        if (str_starts_with($next, 'sport:')) {
+            // Superadmin always gets admin-tier pages.
+            $sportKey = strtolower(substr($next, 6));
+            $sportMap = [
+                'basketball'  => 'Basketball%20Admin%20UI/index.php',
+                'volleyball'  => 'Volleyball%20Admin%20UI/volleyball_admin.php',
+                'badminton'   => 'Badminton%20Admin%20UI/badminton_admin.php',
+                'tabletennis' => 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_admin.php',
+                'darts'       => 'DARTS%20ADMIN%20UI/index.php',
+                'analytics'   => 'analytics/analytics.php',
+                'players'     => 'analytics/players.php',
+            ];
+            if (isset($sportMap[$sportKey])) {
+                return redirect('/' . $sportMap[$sportKey]);
             }
         }
 
-        // Default: send superadmins to the proxied legacy admin landing.
-        return redirect(route('legacy.adminlanding'));
+        if ($next !== '') {
+            $n = strtolower($next);
+            if (str_contains($n, 'adminlanding')) {
+                return redirect('/adminlanding');
+            }
+            if (preg_match('#admin ui|admin\.php|viewer\.php#i', $n)) {
+                $decoded  = urldecode($next);
+                $segments = explode('/', ltrim($decoded, '/'));
+                $encoded  = implode('/', array_map('rawurlencode', $segments));
+                return redirect('/' . $encoded);
+            }
+        }
+
+        // Default for superadmin — always land on the proxied legacy admin dashboard.
+        return redirect('/adminlanding');
     }
 }

@@ -37,21 +37,71 @@ class AuthenticatedSessionController extends Controller
                 $request->session()->regenerateToken();
                 return back()->withErrors(['identifier' => 'Use the Superadmin login page to sign in.']);
             }
-        } catch (\Throwable $_) {
-            // Non-fatal: continue if role check fails for any reason.
-        }
+        } catch (\Throwable $_) {}
 
+        // Regenerate session FIRST before any redirect — prevents 419 on next request.
         $request->session()->regenerate();
 
-        // Do not set legacy SS_* cookies on login. Compatibility is provided
-        // server-side by the `legacy.session` middleware for proxied requests.
+        // Set legacy compatibility cookies so /public legacy PHP sport files
+        // can read the authenticated user's role without going through Laravel middleware.
+        try {
+            $authUser = Auth::guard('web')->user();
+            if ($authUser) {
+                $minutes = 60 * 8; // 8 hours — matches superadmin controller
+                \Illuminate\Support\Facades\Cookie::queue('SS_USER_ID', (string) intval($authUser->id), $minutes);
+                \Illuminate\Support\Facades\Cookie::queue('SS_ROLE', $authUser->role ?? 'viewer', $minutes);
+                try {
+                    $expire = time() + ($minutes * 60);
+                    setcookie('SS_USER_ID', (string) intval($authUser->id), $expire, '/');
+                    setcookie('SS_ROLE', $authUser->role ?? 'viewer', $expire, '/');
+                } catch (\Throwable $_) { /* non-fatal */ }
+            }
+        } catch (\Throwable $_) { /* non-fatal */ }
 
-        // Check if there's a 'next' POST parameter to redirect to after login
-        $next = $request->input('next');
-        if ($next && filter_var($next, FILTER_VALIDATE_URL) === false) {
-            // Only allow relative paths, not external URLs
-            $next = '/' . ltrim($next, '/');
-            return redirect($next);
+        // Resolve the intended destination safely.
+        $next = trim((string) $request->input('next', ''));
+
+        // Resolve sport: keys — determine the correct file based on authenticated role.
+        if (str_starts_with($next, 'sport:')) {
+            $sportKey = strtolower(substr($next, 6)); // strip 'sport:' prefix
+
+            $authUser = Auth::guard('web')->user();
+            $role = strtolower((string)($authUser->role ?? 'viewer'));
+            // Superadmin always goes to adminlanding regardless of sport key.
+            if ($role === 'superadmin') {
+                return redirect('/adminlanding');
+            }
+            $isAdmin = in_array($role, ['admin', 'scorekeeper'], true);
+            $tier = $isAdmin ? 'admin' : 'viewer';
+
+            $sportMap = [
+                'basketball'  => ['admin' => 'Basketball%20Admin%20UI/index.php',                  'viewer' => 'Basketball%20Admin%20UI/basketball_viewer.php'],
+                'volleyball'  => ['admin' => 'Volleyball%20Admin%20UI/volleyball_admin.php',        'viewer' => 'Volleyball%20Admin%20UI/volleyball_viewer.php'],
+                'badminton'   => ['admin' => 'Badminton%20Admin%20UI/badminton_admin.php',          'viewer' => 'Badminton%20Admin%20UI/badminton_viewer.php'],
+                'tabletennis' => ['admin' => 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_admin.php',   'viewer' => 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_viewer.php'],
+                'darts'       => ['admin' => 'DARTS%20ADMIN%20UI/index.php',                        'viewer' => 'DARTS%20ADMIN%20UI/viewer.php'],
+                'analytics'   => ['admin' => 'analytics/analytics.php',                             'viewer' => 'analytics/analytics.php'],
+                'players'     => ['admin' => 'analytics/players.php',                               'viewer' => 'analytics/players.php'],
+            ];
+
+            if (isset($sportMap[$sportKey])) {
+                return redirect('/' . $sportMap[$sportKey][$tier]);
+            }
+
+            // Unknown sport key — fall through to dashboard
+            return redirect()->intended(route('dashboard', [], false));
+        }
+
+        // Legacy raw path fallback (handles any existing bookmarked ?next= URLs).
+        if ($next !== '') {
+            $decoded  = urldecode($next);
+            $isOffsite = preg_match('#^(https?:)?//#i', $decoded) &&
+                         !str_starts_with(ltrim($decoded, '/'), parse_url(config('app.url'), PHP_URL_HOST) ?? '');
+            if (!$isOffsite) {
+                $segments = explode('/', ltrim($decoded, '/'));
+                $encoded  = implode('/', array_map('rawurlencode', $segments));
+                return redirect('/' . $encoded);
+            }
         }
 
         return redirect()->intended(route('dashboard', [], false));

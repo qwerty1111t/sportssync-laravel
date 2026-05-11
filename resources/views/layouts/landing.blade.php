@@ -137,8 +137,8 @@
                 <ul class="nav-links" id="nav-links">
                     <li><a href="#hero" class="nav-link active">Home</a></li>
                     <li><a href="#sports" class="nav-link">Sports</a></li>
-                        <li><a href="{{ Auth::check() ? route('analytics') : route('login') . '?next=' . urlencode(route('analytics')) }}" class="nav-link">Analytics</a></li>
-                        <li><a href="{{ Auth::check() ? route('players') : route('login') . '?next=' . urlencode(route('players')) }}" class="nav-link">Players</a></li>
+                        <li><a href="{{ Auth::check() ? asset('analytics/analytics.php') : route('login') . '?next=sport:analytics' }}" class="nav-link">Analytics</a></li>
+                        <li><a href="{{ Auth::check() ? asset('analytics/players.php') : route('login') . '?next=sport:players' }}" class="nav-link">Players</a></li>
                         <li><a href="#features" class="nav-link">Features</a></li>
                         <li><a href="{{ route('about') }}" class="nav-link">About</a></li>
                         <li><a href="{{ route('contact') }}" class="nav-link">Contact</a></li>
@@ -182,8 +182,8 @@
             @else
                 <a href="{{ route('login') }}" class="btn btn-primary">Sign In to Score</a>
             @endauth
-            <a href="{{ Auth::check() ? route('analytics') : route('login') . '?next=' . urlencode(route('analytics')) }}" class="btn btn-outline">Analytics</a>
-            <a href="{{ Auth::check() ? route('players') : route('login') . '?next=' . urlencode(route('players')) }}" class="btn btn-outline">Players</a>
+            <a href="{{ Auth::check() ? asset('analytics/analytics.php') : route('login') . '?next=sport:analytics' }}" class="btn btn-outline">Analytics</a>
+            <a href="{{ Auth::check() ? asset('analytics/players.php') : route('login') . '?next=sport:players' }}" class="btn btn-outline">Players</a>
             <a href="#sports" class="btn btn-outline">Explore Sports</a>
         </div>
     </div>
