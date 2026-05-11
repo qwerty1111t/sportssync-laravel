@@ -370,9 +370,8 @@ function initWebSocket() {
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const meta = document.querySelector('meta[name="ws-token"]');
     const wsToken = meta ? meta.getAttribute('content') : '';
-    // Removed token from URL to allow any admin user with admin role to access and update
-    // const url = proto + '//' + location.hostname + ':3000' + (wsToken ? ('?token=' + encodeURIComponent(wsToken)) : '');
-    const url = proto + '//' + location.hostname + ':3000';
+    // Connect to /ws which Nginx reverse-proxies to the internal WebSocket server on :3000
+    const url = proto + '//' + location.host + '/ws';
     window._dartsWS = new WebSocket(url);
     window._wsPendingCallbacks = [];
 
