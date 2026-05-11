@@ -43,6 +43,7 @@ RUN echo '#!/bin/bash\n\
 set -e\n\
 export PORT=${PORT:-8000}\n\
 echo "Starting Laravel application on port $PORT"\n\
+php artisan optimize:clear\n\
 php artisan migrate --force\n\
 exec supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /usr/local/bin/startup.sh \
     && chmod +x /usr/local/bin/startup.sh
