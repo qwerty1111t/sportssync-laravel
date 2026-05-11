@@ -31,6 +31,9 @@ RUN composer install --no-dev --optimize-autoloader
 # Install Node dependencies
 RUN npm install
 
+# Install WebSocket server dependencies
+RUN cd /var/www/html/public/ws-server && npm install
+
 # Build frontend assets
 RUN npm run build
 
@@ -51,8 +54,8 @@ exec supervisord -c /etc/supervisor/conf.d/supervisord.conf' > /usr/local/bin/st
 # Copy supervisor config
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Expose port
-EXPOSE ${PORT:-8000}
+# Expose ports (Laravel on 8000, WebSocket on 3000)
+EXPOSE ${PORT:-8000} 3000
 
 # Health check
 HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \

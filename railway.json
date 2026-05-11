@@ -1,13 +1,33 @@
 {
-  "buildCommand": "docker build -t sportssync .",
-  "environmentVariables": {
-    "PORT": "8000",
-    "APP_DEBUG": "false",
-    "APP_ENV": "production"
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "dockerfile"
   },
-  "volumes": [
-    "/var/www/html/storage",
-    "/var/www/html/bootstrap/cache"
-  ],
-  "port": 8000
+  "deploy": {
+    "numReplicas": 1
+  },
+  "services": {
+    "web": {
+      "buildCommand": "docker build -t sportssync .",
+      "environmentVariables": {
+        "PORT": "8000",
+        "APP_DEBUG": "false",
+        "APP_ENV": "production"
+      },
+      "volumes": [
+        "/var/www/html/storage",
+        "/var/www/html/bootstrap/cache"
+      ],
+      "ports": [
+        {
+          "port": 8000,
+          "public": true
+        },
+        {
+          "port": 3000,
+          "public": true
+        }
+      ]
+    }
+  }
 }
