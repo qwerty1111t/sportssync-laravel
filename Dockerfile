@@ -45,20 +45,20 @@ RUN chown -R www-data:www-data /var/www/html \
 # Create startup script that exports environment variables globally
 RUN echo '#!/bin/bash\n\
 set -e\n\
-# Export environment variables so PHP and child processes can access them\n\
+# Map Railway MySQL service variables to application DB_* variables\n\
+export DB_HOST=${DB_HOST:-${MYSQLHOST:-localhost}}\n\
+export DB_PORT=${DB_PORT:-${MYSQLPORT:-3306}}\n\
+export DB_DATABASE=${DB_DATABASE:-${MYSQLDATABASE:-railway}}\n\
+export DB_USERNAME=${DB_USERNAME:-${MYSQLUSER:-root}}\n\
+export DB_PASSWORD=${DB_PASSWORD:-${MYSQLPASSWORD:-}}\n\
+export DB_CONNECTION=${DB_CONNECTION:-mysql}\n\
 export PORT=${PORT:-8080}\n\
 export WS_PORT=${WS_PORT:-3000}\n\
-export DB_HOST=${DB_HOST:-localhost}\n\
-export DB_PORT=${DB_PORT:-3306}\n\
-export DB_DATABASE=${DB_DATABASE:-sportssync}\n\
-export DB_USERNAME=${DB_USERNAME:-root}\n\
-export DB_PASSWORD=${DB_PASSWORD:-}\n\
-export DB_CONNECTION=${DB_CONNECTION:-mysql}\n\
 export APP_ENV=${APP_ENV:-production}\n\
 export APP_DEBUG=${APP_DEBUG:-false}\n\
-# Write env vars to a file that supervisord can source\n\
-env > /etc/environment.sh\n\
-echo "Starting Laravel application on port $PORT"\n\
+# Log the resolved database connection\n\
+echo "Database config: DB_HOST=$DB_HOST DB_PORT=$DB_PORT DB_DATABASE=$DB_DATABASE DB_USERNAME=$DB_USERNAME"\n\
+echo "Starting Laravel application on port $PORT with WebSocket on port $WS_PORT"\n\
 php artisan optimize:clear\n\
 php artisan migrate --force\n\
 # Start supervisord with the exported environment\n\
