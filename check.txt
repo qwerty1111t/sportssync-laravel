@@ -1,0 +1,17 @@
+HTTP/1.1 200 OK
+Host: 127.0.0.1:8000
+Connection: close
+X-Powered-By: PHP/8.2.12
+X-Content-Type-Options: nosniff
+X-Frame-Options: SAMEORIGIN
+Referrer-Policy: no-referrer-when-downgrade
+Content-Security-Policy: default-src 'self' 'unsafe-inline' https:; img-src 'self' data: https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:
+Cache-Control: max-age=0, must-revalidate, no-cache, no-store, private
+Date: Tue, 12 May 2026 15:17:44 GMT
+Content-Type: application/json
+Pragma: no-cache
+Expires: 0
+Set-Cookie: XSRF-TOKEN=eyJpdiI6IjVtQUkrSHdJZGZQQ1NnakI4WTZIWXc9PSIsInZhbHVlIjoiMUdWN05wSnNTYm02NDVWMDgzSElxMFFnQU03ZkhuM0J0U1ZBN0FObnhxcXJIbFkrVy9zMk84YlZpWlo4ck52UDA0eFovSVFnK3lVc2RaU1BNdndPOXpsN2ZvVzdvajBwb3MrV1UrY05kQlBwTklSQ2xYL01rNTJid0ZNVlNmSDYiLCJtYWMiOiIyNzliNzM2NTM1YjczZGVkNDM0YTY2NzM1ZjUwNDQyMDU2NTM4YzczMzRmOGE5ZWQwMzAxMjhiNDhjY2I0NmE1IiwidGFnIjoiIn0%3D; expires=Tue, 12 May 2026 17:17:44 GMT; Max-Age=7200; path=/; samesite=lax
+Set-Cookie: sportsync-session=eyJpdiI6ImJrVkYweE5nT3l6UGl2SzM1S2s0c3c9PSIsInZhbHVlIjoiUzFyejRPc09aaXRuWDJKUElBZ25WNmY1cVRORk5ZQW8yaFhlRHNrZDdQcExhWm9lZWtHdWUwN2QxY1g0b1Y2bjh3a2V2Q0RYUm9PU2g3NVJBNDAzVmJnK01Vc3h6Skg3K3BlOE1PbDBWdjZBNWhQVGZpWFlINUVodEZ6VndYek0iLCJtYWMiOiJiYjk2NTFkZjkxYjY4N2I5YmUxYTEzY2QwZDEwNWI2MGE2ODMwOTg0MjE2ZTRmMTliYTE1OWIwNzlkNGZjMDI2IiwidGFnIjoiIn0%3D; expires=Tue, 12 May 2026 17:17:44 GMT; Max-Age=7200; path=/; httponly; samesite=lax
+
+{"authenticated":false,"user_id":null,"status":null}

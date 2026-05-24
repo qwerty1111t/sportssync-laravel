@@ -1,0 +1,657 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Barlow:wght@400;600;700&display=swap');
+
+/* ============================================================
+   TABLE TENNIS VIEWER — Mobile-First Responsive CSS
+   Strategy: single full-width column on mobile (< 900px),
+             3-column flex row on desktop (≥ 900px).
+   Display-only: no +/− buttons, no editable inputs.
+   ============================================================ */
+
+/* ── DESIGN TOKENS ── */
+:root {
+  --yellow:   #FFE600;
+  --red:      #CC0000;
+  --blue:     #003399;
+  --green:    #1A7A1A;
+  --purple:   #7c3aed;
+  --bg:       #0e0e0e;
+  --surface:  #181818;
+  --surface2: #1e1e2e;
+  --border:   #2e2e2e;
+  --text:     #ffffff;
+  --muted:    #888;
+  --radius:   6px;
+  --touch:    48px;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ── BASE ── */
+html, body { overflow-x: hidden; }
+body {
+  font-family: 'Barlow', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════════════════════════════════════════════
+   BACK BUTTON
+   ══════════════════════════════════════════════════ */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #111;
+  border: none;
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  color: var(--yellow);
+  font-family: 'Barlow', 'Segoe UI', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-height: 36px;
+}
+
+.back-btn:hover {
+  background: #222;
+  box-shadow: 0 0 12px rgba(255, 230, 0, 0.25);
+}
+
+.back-btn:active { transform: scale(0.96); }
+
+.back-btn svg { flex-shrink: 0; }
+
+.back-btn-text { display: inline; }
+
+@media (max-width: 600px) {
+  .back-btn { padding: 8px 10px; }
+  .back-btn-text { display: none; }
+}
+
+/* ══════════════════════════════════════════════════
+   TOP NAV BAR
+   ══════════════════════════════════════════════════ */
+.top-nav {
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  padding-left:  max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  min-height: 60px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.top-nav .nav-title {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: #111;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  order: 2;
+}
+
+.top-nav .nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  order: 3;
+}
+
+.nav-live-badge {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #111;
+  background: rgba(0, 0, 0, 0.1);
+  padding: 6px 12px;
+  border-radius: var(--radius);
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+@media (min-width: 900px) {
+  .top-nav {
+    flex-wrap: nowrap;
+    height: 58px;
+    padding: 0 24px;
+    padding-left:  max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+  }
+  .top-nav .nav-title {
+    font-size: 20px;
+    order: unset;
+  }
+  .top-nav .nav-right {
+    order: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .top-nav .nav-title {
+    font-size: 14px;
+    order: 2;
+    flex: 1 1 100%;
+    padding: 4px 0;
+  }
+  .nav-live-badge { display: none; }
+}
+
+/* ══════════════════════════════════════════════════
+   MATCH TYPE BAR (read-only display)
+   ══════════════════════════════════════════════════ */
+.match-type-bar {
+  display: flex;
+  justify-content: center;
+  padding: 10px 12px 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mt-label {
+  background: #222;
+  color: var(--muted);
+  border: 2px solid var(--border);
+  padding: 8px 24px;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 14px;
+  border-radius: var(--radius);
+  letter-spacing: 1px;
+}
+
+.mt-label.active {
+  background: var(--yellow);
+  color: #111;
+  border-color: var(--yellow);
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN AREA — mobile: vertical stack
+   ══════════════════════════════════════════════════ */
+.main-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* ── TEAM PANELS ── */
+#panelA,
+#panelB {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  width: 100%;
+}
+
+.team-header {
+  width: 100%;
+  text-align: center;
+  padding: 14px 12px;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  position: relative;
+  border-radius: var(--radius);
+}
+
+.team-header-a { background: var(--red);  color: #fff; }
+.team-header-b { background: var(--blue); color: #fff; }
+
+/* ── PLAYER DISPLAY (viewer: read-only rows, not inputs) ── */
+.player-display {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.player-row {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  color: #ccc;
+  font-family: 'Barlow', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.player-role {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 10px;
+  color: var(--yellow);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── SECTION LABELS ── */
+.section-label {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--yellow);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  text-align: center;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* ── SCORE DISPLAY ── */
+.score-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.score-box {
+  width: 110px;
+  height: 88px;
+  background: var(--surface2);
+  border: 3px solid var(--yellow);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--yellow);
+}
+
+.score-box.small {
+  width: 72px;
+  height: 56px;
+  font-size: 30px;
+}
+
+/* ══════════════════════════════════════════════════
+   CENTER PANEL — full-width on mobile
+   ══════════════════════════════════════════════════ */
+.center-panel {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  background: var(--surface);
+  border-top:    2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  padding: 16px;
+}
+
+.center-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+/* ── SERVING INDICATOR ── */
+.serving-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--surface2);
+  border: 2px solid var(--yellow);
+  border-radius: var(--radius);
+  width: 100%;
+}
+
+.serving-indicator .shuttle-icon { font-size: 20px; flex-shrink: 0; }
+
+.serving-indicator .serving-team {
+  color: var(--yellow);
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+/* ── TIMEOUTS ── */
+.timeouts-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  width: 100%;
+}
+
+.timeout-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 4px;
+  min-width: 0;
+}
+
+.timeout-group .tg-label {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+/* ── COMMITTEE DISPLAY (read-only) ── */
+.committee-display {
+  width: 100%;
+  max-width: 360px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: #ccc;
+  font-family: 'Barlow', 'Segoe UI', sans-serif;
+  font-size: 14px;
+  text-align: center;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ══════════════════════════════════════════════════
+   LIVE BADGE
+   ══════════════════════════════════════════════════ */
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--red);
+  color: #fff;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  padding: 5px 14px;
+  text-transform: uppercase;
+  border-radius: var(--radius);
+}
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════
+   STATUS BAR
+   ══════════════════════════════════════════════════ */
+.status-bar {
+  background: var(--surface);
+  border-top: 2px solid var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 16px;
+  padding-left:  max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  height: auto;
+  flex-shrink: 0;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+}
+
+.status-item .si-label {
+  font-family: 'Barlow', 'Segoe UI', sans-serif;
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.status-item .si-value {
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--yellow);
+}
+
+/* ══════════════════════════════════════════════════
+   MANUAL WINNER HIGHLIGHT
+   ══════════════════════════════════════════════════ */
+.team-header.manual-winner {
+  box-shadow: 0 0 0 4px rgba(255, 215, 0, 0.6), 0 6px 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.team-header.manual-winner::after {
+  content: '🏆';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 20px;
+}
+
+/* ══════════════════════════════════════════════════
+   SSOT WINNER MODAL — shared with admin
+   ══════════════════════════════════════════════════ */
+#winnerModal {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#winnerModal.show { display: flex; }
+
+#winnerModal .modal-content {
+  background: linear-gradient(135deg, #1a5c1a 0%, #0e3a0e 100%);
+  border: 4px solid #FFE600;
+  padding: 40px 24px;
+  border-radius: 12px;
+  text-align: center;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 8px 32px rgba(255, 230, 0, 0.3);
+}
+
+#winnerModal h2 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px;
+  font-weight: 900;
+  color: #FFE600;
+  margin-bottom: 16px;
+  text-shadow: 0 2px 8px rgba(255, 230, 0, 0.4);
+}
+
+#winnerModal p {
+  font-size: 18px;
+  color: #ccc;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+#winnerModal button {
+  background: #FFE600;
+  color: #000;
+  border: none;
+  padding: 12px 40px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+#winnerModal button:hover {
+  background: #FFA500;
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(255, 165, 0, 0.4);
+}
+
+/* ══════════════════════════════════════════════════
+   KEYFRAMES
+   ══════════════════════════════════════════════════ */
+@keyframes scoreFlash {
+  0%   { background: var(--yellow); color: #111; }
+  100% { background: var(--surface2); color: var(--yellow); }
+}
+
+.score-box.flash {
+  animation: scoreFlash 0.5s ease-out;
+}
+
+@keyframes flash {
+  0%, 100% { background-color: var(--yellow); box-shadow: 0 0 10px rgba(255, 230, 0, 0.3); }
+  50%       { background-color: #FFA500;      box-shadow: 0 0 20px rgba(255, 165, 0, 0.6); }
+}
+
+.flash {
+  animation: flash 0.1s ease-in-out !important;
+}
+
+.flash-strong {
+  animation: flash 0.2s ease-in-out 0s 3 !important;
+}
+
+/* ══════════════════════════════════════════════════
+   DESKTOP ≥ 900px — 3-column flex layout
+   ══════════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  .main-area {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  #panelA {
+    flex: 1;
+    order: 1;
+    padding: 0;
+  }
+
+  #panelB {
+    flex: 1;
+    order: 3;
+    padding: 0;
+  }
+
+  .center-panel {
+    flex: 0 0 340px;
+    width: 340px;
+    order: 2;
+    background: transparent;
+    border: none;
+    padding: 0;
+    gap: 12px;
+  }
+
+  .status-bar {
+    flex-wrap: nowrap;
+    height: 60px;
+    padding: 0 24px;
+    padding-left:  max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   LANDSCAPE PHONE — tighten spacing
+   ══════════════════════════════════════════════════ */
+@media (max-width: 899px) and (orientation: landscape) {
+  #panelA, #panelB   { padding: 8px 12px; }
+  .center-panel      { padding: 10px 12px; gap: 8px; }
+  .score-box         { width: 80px; height: 64px; font-size: 34px; }
+  .score-box.small   { width: 54px; height: 44px; font-size: 22px; }
+  .status-bar {
+    flex-wrap: nowrap;
+    height: 48px;
+    padding: 0 10px;
+    padding-left:  max(10px, env(safe-area-inset-left));
+    padding-right: max(10px, env(safe-area-inset-right));
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   TOUCH — disable hover effects on touch devices
+   ══════════════════════════════════════════════════ */
+@media (hover: none) {
+  .back-btn:hover          { background: #111; box-shadow: none; }
+  .serving-indicator:hover { background: var(--surface2); }
+  #winnerModal button:hover {
+    background: var(--yellow);
+    transform: none;
+    box-shadow: none;
+  }
+}

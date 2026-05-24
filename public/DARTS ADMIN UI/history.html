@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Match History — SportSync Darts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   SportSync Admin — Unified Design System
+   ═══════════════════════════════════════════════════════ */
+:root {
+  --bg:          #0a0a0a;
+  --bg-mid:      #111111;
+  --surface:     #141414;
+  --surface-alt: #1a1a1a;
+  --nav-bg:      rgba(10,10,10,0.96);
+  --text:        #e8eaed;
+  --text-muted:  #888888;
+  --text-dim:    #555555;
+  --primary:     #FFD700;
+  --primary-fg:  #0a0a0a;
+  --primary-dim: rgba(255,215,0,0.12);
+  --primary-glow:rgba(255,215,0,0.28);
+  --blue:        #1565C0;
+  --danger:      #cc3333;
+  --danger-dim:  rgba(204,51,51,0.13);
+  --success:     #27ae60;
+  --border:      rgba(255,215,0,0.12);
+  --border-s:    #252525;
+  --font-head:   'Oswald', sans-serif;
+  --font-body:   'DM Sans', sans-serif;
+  --shadow:      0 4px 24px rgba(0,0,0,0.5);
+  --shadow-gold: 0 4px 20px rgba(255,215,0,0.10);
+  --radius:      6px;
+  --nav-h:       60px;
+  --tr:          all 0.25s ease;
+}
+.light-mode {
+  --bg:          #f5f5f0;
+  --bg-mid:      #edecea;
+  --surface:     #ffffff;
+  --surface-alt: #f2f0eb;
+  --nav-bg:      rgba(10,10,10,0.97);
+  --text:        #1a1a2e;
+  --text-muted:  #555555;
+  --text-dim:    #888888;
+  --primary:     #d97706;
+  --primary-fg:  #ffffff;
+  --primary-dim: rgba(217,119,6,0.10);
+  --primary-glow:rgba(217,119,6,0.22);
+  --blue:        #1e3a8a;
+  --danger:      #b91c1c;
+  --danger-dim:  rgba(185,28,28,0.10);
+  --success:     #16a34a;
+  --border:      rgba(0,0,0,0.07);
+  --border-s:    #ddd;
+  --shadow:      0 2px 12px rgba(0,0,0,0.08);
+  --shadow-gold: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+/* ── Reset ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;font-size:clamp(14px,2.5vw,16px);overflow-x:hidden}
+a{text-decoration:none;color:inherit}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--primary);border-radius:4px}
+*{scrollbar-width:thin;scrollbar-color:var(--primary) var(--bg)}
+
+/* ════════════════ NAVBAR ════════════════ */
+.ss-nav{
+  position:sticky;top:0;z-index:100;
+  height:var(--nav-h);
+  background:var(--nav-bg);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+.ss-nav-inner{
+  max-width:1200px;margin:0 auto;
+  height:100%;padding:0 24px;
+  display:flex;align-items:center;gap:16px;
+}
+.ss-brand{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--font-head);font-size:1.2rem;font-weight:700;
+  letter-spacing:0.06em;color:#e8eaed;white-space:nowrap;
+}
+.ss-bolt{color:var(--primary)}
+.ss-brand-accent{color:var(--primary)}
+.ss-breadcrumb{
+  display:flex;align-items:center;gap:8px;
+  font-family:var(--font-head);font-size:0.82rem;
+  letter-spacing:0.08em;color:#888;
+  border-left:1px solid var(--border);padding-left:16px;
+}
+.ss-bc-sep{color:var(--primary);opacity:0.6}
+.ss-bc-current{color:var(--primary);font-weight:600;letter-spacing:0.1em}
+.ss-nav-end{display:flex;align-items:center;gap:10px;margin-left:auto}
+.ss-btn-back{
+  font-family:var(--font-head);font-size:0.78rem;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;
+  padding:7px 16px;border-radius:var(--radius);
+  border:1.5px solid rgba(255,255,255,0.18);
+  color:#e8eaed;background:transparent;
+  white-space:nowrap;cursor:pointer;transition:var(--tr);
+  display:inline-flex;align-items:center;gap:6px;
+}
+.ss-btn-back:hover{border-color:var(--primary);color:var(--primary)}
+.ss-theme-btn{
+  background:transparent;border:1px solid rgba(255,255,255,0.1);
+  color:#e8eaed;padding:7px 10px;border-radius:var(--radius);
+  cursor:pointer;font-size:1rem;transition:var(--tr);
+  display:inline-flex;align-items:center;
+}
+.ss-theme-btn:hover{border-color:var(--primary)}
+
+/* ════════════════ LAYOUT ════════════════ */
+.ss-main{padding:24px 16px 48px;max-width:1200px;margin:0 auto}
+
+.ss-page-header{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;
+  margin-bottom:24px;padding-bottom:16px;
+  border-bottom:1px solid var(--border);
+}
+.ss-page-title{
+  font-family:var(--font-head);font-size:clamp(1.4rem,3vw,1.9rem);
+  font-weight:700;letter-spacing:0.04em;text-transform:uppercase;
+  border-left:3px solid var(--primary);padding-left:12px;
+}
+
+/* ── Cards ── */
+.ss-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow-gold);margin-bottom:16px;
+}
+
+/* ── Buttons ── */
+.ss-btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--font-head);font-size:0.82rem;font-weight:600;
+  letter-spacing:0.08em;text-transform:uppercase;
+  padding:10px 20px;border-radius:var(--radius);
+  border:2px solid transparent;cursor:pointer;
+  transition:var(--tr);white-space:nowrap;
+  min-height:42px;min-width:44px;
+}
+.ss-btn-primary{background:var(--primary);color:var(--primary-fg);border-color:var(--primary)}
+.ss-btn-primary:hover{background:#ffca00;border-color:#ffca00;box-shadow:0 4px 18px var(--primary-glow);transform:translateY(-1px)}
+.ss-btn-secondary{background:transparent;color:var(--text);border-color:var(--border-s)}
+.ss-btn-secondary:hover{border-color:var(--primary);color:var(--primary)}
+.ss-btn-danger{background:transparent;color:var(--danger);border-color:var(--danger)}
+.ss-btn-danger:hover{background:var(--danger-dim)}
+.ss-btn-ghost{background:var(--surface-alt);color:var(--text-muted);border-color:var(--border-s)}
+.ss-btn-ghost:hover{color:var(--text);border-color:var(--border-s)}
+.ss-btn-sm{padding:6px 14px;font-size:0.76rem;min-height:34px}
+
+/* ════════════════ MATCH CARDS ════════════════ */
+#match-list{display:flex;flex-direction:column;gap:10px}
+
+.match-card{
+  background:var(--surface);border:1px solid var(--border-s);
+  border-radius:var(--radius);padding:16px 20px;
+  cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;
+  position:relative;
+}
+.match-card::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;
+  width:3px;background:var(--border-s);border-radius:var(--radius) 0 0 var(--radius);
+  transition:background .2s;
+}
+.match-card:hover{border-color:rgba(255,215,0,0.3);box-shadow:0 0 0 1px rgba(255,215,0,0.15)}
+.match-card:hover::before{background:var(--primary)}
+.match-card.selected{border-color:var(--primary);box-shadow:0 0 0 1px rgba(255,215,0,0.25)}
+.match-card.selected::before{background:var(--primary)}
+
+.match-card-header{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:8px;margin-bottom:10px;
+}
+.match-card-title{
+  font-family:var(--font-head);font-weight:600;font-size:1rem;
+  letter-spacing:0.04em;color:var(--primary);
+}
+.match-card-date{font-size:0.78rem;color:var(--text-muted)}
+
+.match-card-meta{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  font-size:0.82rem;
+}
+.match-meta-chip{
+  background:var(--surface-alt);border:1px solid var(--border-s);
+  padding:3px 10px;border-radius:20px;color:var(--text-muted);
+  font-size:0.78rem;white-space:nowrap;
+}
+.match-winner{
+  color:var(--success);font-weight:600;
+  display:inline-flex;align-items:center;gap:4px;
+}
+
+/* ── Status Badges ── */
+.ss-badge{
+  display:inline-block;padding:3px 9px;border-radius:20px;
+  font-family:var(--font-head);font-size:0.7rem;
+  letter-spacing:0.08em;font-weight:600;text-transform:uppercase;
+  white-space:nowrap;
+}
+.ss-badge-completed{background:rgba(39,174,96,0.15);color:#4ade80;border:1px solid rgba(39,174,96,0.3)}
+.ss-badge-ongoing{background:rgba(21,101,192,0.15);color:#60a5fa;border:1px solid rgba(21,101,192,0.3)}
+
+/* ── States ── */
+#loading,#no-history{
+  text-align:center;padding:48px 24px;
+  color:var(--text-muted);font-size:1rem;
+  font-family:var(--font-head);letter-spacing:0.06em;
+}
+#loading::after{content:'…';animation:dots 1.2s steps(3,end) infinite}
+@keyframes dots{0%,100%{content:'…'}33%{content:'.'}66%{content:'..'}  }
+
+/* ════════════════ PAGINATION ════════════════ */
+.ss-pagination{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;padding:12px 0;
+}
+.ss-pg-info{font-size:0.82rem;color:var(--text-muted)}
+.ss-pg-btns{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.ss-pg-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:34px;height:34px;padding:0 8px;
+  font-family:var(--font-head);font-size:0.78rem;font-weight:600;
+  background:var(--surface-alt);color:var(--text-muted);
+  border:1px solid var(--border-s);border-radius:var(--radius);
+  cursor:pointer;transition:var(--tr);
+}
+.ss-pg-btn:hover{border-color:var(--primary);color:var(--primary)}
+.ss-pg-btn.active{background:var(--primary);color:var(--primary-fg);border-color:var(--primary);font-weight:700}
+.ss-pg-btn.disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
+.ss-pg-ellipsis{color:var(--text-dim);padding:0 4px}
+.ss-pg-prev,.ss-pg-next{padding:0 12px}
+
+/* ════════════════ REPORT SECTION ════════════════ */
+#report-section{margin-top:24px;display:none}
+#report-section.show{display:block}
+
+#report-content{
+  background:var(--surface);
+  border:1px solid rgba(255,215,0,0.25);
+  border-radius:var(--radius);
+  padding:24px;
+  box-shadow:var(--shadow-gold);
+}
+.report-title{
+  font-family:var(--font-head);font-size:1.4rem;font-weight:700;
+  letter-spacing:0.04em;text-transform:uppercase;
+  color:var(--primary);
+  border-left:3px solid var(--primary);padding-left:12px;
+  margin-bottom:16px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+}
+.report-section-head{
+  font-family:var(--font-head);font-size:0.85rem;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;color:var(--primary);
+  margin:20px 0 8px;
+  border-left:3px solid var(--primary);padding-left:10px;
+}
+
+/* Report Tables */
+.ss-table-wrap{overflow-x:auto;border-radius:var(--radius);margin-bottom:16px}
+.ss-table{width:100%;border-collapse:collapse;font-size:0.86rem;min-width:400px}
+.ss-table thead{position:sticky;top:var(--nav-h);z-index:5}
+.ss-table th{
+  background:var(--bg-mid);
+  font-family:var(--font-head);font-size:0.76rem;font-weight:600;
+  letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--primary);padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  border-right:1px solid var(--border-s);text-align:left;white-space:nowrap;
+}
+.ss-table th:last-child{border-right:none}
+.ss-table td{
+  padding:9px 12px;
+  border-bottom:1px solid var(--border-s);
+  border-right:1px solid var(--border-s);
+  color:var(--text);vertical-align:middle;
+}
+.ss-table td:last-child{border-right:none}
+.ss-table tbody tr:nth-child(even) td{background:var(--surface-alt)}
+.ss-table tbody tr:hover td{background:var(--primary-dim)}
+.ss-table tbody tr:last-child td{border-bottom:none}
+.winner-text{color:var(--success);font-weight:600}
+.bust-text{color:var(--danger)}
+
+/* Export buttons */
+.export-btns{
+  display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;
+}
+
+/* Report close */
+.report-close-row{
+  margin-top:20px;padding-top:16px;
+  border-top:1px solid var(--border);
+}
+
+/* ════════════════ RESPONSIVE ════════════════ */
+@media(max-width:768px){
+  .ss-main{padding:16px 12px 40px}
+  .ss-nav-inner{padding:0 16px}
+  .ss-breadcrumb{display:none}
+  .ss-page-header{flex-direction:column;align-items:flex-start}
+}
+@media(max-width:480px){
+  .ss-brand-name{display:none}
+  .match-card{padding:12px 14px}
+  #report-content{padding:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Navbar ── -->
+<nav class="ss-nav">
+  <div class="ss-nav-inner">
+    <div class="ss-brand">
+      <span class="ss-bolt">⚡</span>
+      <span class="ss-brand-name">SPORT<span class="ss-brand-accent">SYNC</span></span>
+    </div>
+    <div class="ss-breadcrumb">
+      <span>Darts</span>
+      <span class="ss-bc-sep">›</span>
+      <span class="ss-bc-current">Match History</span>
+    </div>
+    <div class="ss-nav-end">
+      <button class="ss-btn-back" onclick="location.href='index.php'">← Back to Game</button>
+      <button id="themeToggle" class="ss-theme-btn" title="Toggle light/dark mode">🌙</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Main ── -->
+<main class="ss-main">
+
+  <div class="ss-page-header">
+    <h1 class="ss-page-title">🎯 Match History</h1>
+  </div>
+
+  <!-- Match List Card -->
+  <div class="ss-card">
+    <!-- Pagination Top -->
+    <div id="pg-top" class="ss-pagination"></div>
+    <div id="match-list">
+      <div id="loading">Loading match history</div>
+    </div>
+    <!-- Pagination Bottom -->
+    <div id="pg-bottom" class="ss-pagination"></div>
+  </div>
+
+  <!-- Report Section -->
+  <div id="report-section">
+    <div id="report-content">
+      <div id="report-inner"></div>
+      <div class="report-close-row">
+        <button class="ss-btn ss-btn-ghost" onclick="closeReport()">✕ Close Report</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let selectedMatchId = null;
+let allMatchCards = [];
+const PER_PAGE = 10;
+let currentPage = 1;
+
+function escH(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ── Pagination engine ── */
+function buildPaginationHTML(total, cur) {
+  var totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  var s = total > 0 ? (cur-1)*PER_PAGE+1 : 0;
+  var e = Math.min(cur*PER_PAGE, total);
+  var h = '<div class="ss-pg-info">Showing '+s+'–'+e+' of '+total+' matches</div><div class="ss-pg-btns">';
+  h += '<button class="ss-pg-btn ss-pg-prev'+(cur===1?' disabled':'')+'" '+(cur===1?'disabled':'')+' data-pg="'+(cur-1)+'">← Prev</button>';
+  for (var i=1;i<=totalPages;i++){
+    if(totalPages>7&&i>2&&i<totalPages-1&&Math.abs(i-cur)>1){
+      if(i===3||i===totalPages-2) h+='<span class="ss-pg-ellipsis">…</span>';
+      continue;
+    }
+    h+='<button class="ss-pg-btn'+(i===cur?' active':'')+'" data-pg="'+i+'">'+i+'</button>';
+  }
+  h+='<button class="ss-pg-btn ss-pg-next'+(cur===totalPages?' disabled':'')+'" '+(cur===totalPages?'disabled':'')+' data-pg="'+(cur+1)+'">Next →</button>';
+  h+='</div>';
+  return h;
+}
+
+function renderPagination(total) {
+  var totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  ['pg-top','pg-bottom'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = buildPaginationHTML(total, currentPage);
+    el.querySelectorAll('[data-pg]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var p = parseInt(this.dataset.pg);
+        if (p<1||p>totalPages) return;
+        currentPage = p;
+        renderCards();
+      });
+    });
+  });
+}
+
+function renderCards() {
+  var list = document.getElementById('match-list');
+  var s = (currentPage-1)*PER_PAGE, e = s+PER_PAGE;
+  var page = allMatchCards.slice(s, e);
+  list.innerHTML = '';
+  if (!page.length) {
+    list.innerHTML = '<div id="no-history">No saved matches found.</div>';
+  } else {
+    page.forEach(function(card){ list.appendChild(card); });
+  }
+  renderPagination(allMatchCards.length);
+}
+
+function loadHistory() {
+  fetch('get_history.php')
+    .then(r => r.json())
+    .then(data => {
+      var list = document.getElementById('match-list');
+      if (!data.length) {
+        list.innerHTML = '<div id="no-history">No saved matches found.</div>';
+        renderPagination(0);
+        return;
+      }
+
+      allMatchCards = [];
+      data.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'match-card';
+        card.id = 'mcard-' + m.id;
+
+        const date = new Date(m.created_at).toLocaleString();
+        const statusClass = m.status === 'completed' ? 'ss-badge-completed' : 'ss-badge-ongoing';
+
+        card.innerHTML = `
+          <div class="match-card-header">
+            <div class="match-card-title">Match #${m.id} — ${escH(m.game_type)}</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="ss-badge ${statusClass} js-status">${m.status.toUpperCase()}</span>
+              <span class="match-card-date">${date}</span>
+            </div>
+          </div>
+          <div class="match-card-meta">
+            <span class="match-meta-chip">Game: <span class="js-type">${escH(m.game_type)}</span></span>
+            <span class="match-meta-chip">Legs to Win: <span class="js-best">${m.legs_to_win}</span></span>
+            <span class="match-meta-chip">Mode: <span class="js-mode">${escH(m.mode)}</span></span>
+            ${m.total_legs ? `<span class="match-meta-chip">Total Legs: ${m.total_legs}</span>` : ''}
+            ${m.winner_name ? `<span class="match-winner js-winner">🏆 ${escH(m.winner_name)}</span>` : '<span class="js-winner" style="display:none"></span>'}
+          </div>
+        `;
+
+        // Edit button (appended to meta row, logic untouched)
+        const meta = card.querySelector('.match-card-meta');
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'ss-btn ss-btn-ghost ss-btn-sm';
+        editBtn.title = 'Edit this saved match';
+        editBtn.textContent = 'Edit';
+        editBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          if (confirm('Are you sure you want to edit this match? Changes will be saved to the database.')) {
+            if (typeof openMatchEdit === 'function') {
+              openMatchEdit(m.id);
+            } else {
+              alert('Edit dialog not available yet. Please refresh the page.');
+            }
+          }
+        });
+        if (meta) meta.appendChild(editBtn);
+
+        card.onclick = () => {
+          window.open('darts_report.php?match_id=' + encodeURIComponent(m.id), '_blank');
+        };
+
+        allMatchCards.push(card);
+      });
+
+      currentPage = 1;
+      renderCards();
+    })
+    .catch(() => {
+      document.getElementById('match-list').innerHTML = '<div id="no-history">Could not load history (check server connection).</div>';
+      renderPagination(0);
+    });
+}
+
+function loadMatchDetail(matchId) {
+  document.querySelectorAll('.match-card').forEach(c => c.classList.remove('selected'));
+  const selCard = document.getElementById('mcard-' + matchId);
+  if (selCard) selCard.classList.add('selected');
+
+  selectedMatchId = matchId;
+  const section = document.getElementById('report-section');
+  const inner = document.getElementById('report-inner');
+  section.classList.add('show');
+  inner.innerHTML = '<div style="color:var(--text-muted);padding:24px;text-align:center">Loading match details…</div>';
+  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  fetch('get_match.php?match_id=' + matchId)
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) { inner.innerHTML = '<p style="color:var(--danger)">Error loading match.</p>'; return; }
+      inner.innerHTML = renderMatchReport(data, matchId);
+    })
+    .catch(() => { inner.innerHTML = '<p style="color:var(--danger)">Network error.</p>'; });
+}
+
+function renderMatchReport(data, matchId) {
+  const m = data.match;
+  const players = {};
+  data.players.forEach(p => players[p.id] = p);
+  const legs = data.legs;
+  const date = new Date(m.created_at).toLocaleString();
+
+  const legsWon = {};
+  const throwTotals = {};
+  const throwCounts = {};
+  data.players.forEach(p => { legsWon[p.id] = 0; throwTotals[p.id] = 0; throwCounts[p.id] = 0; });
+  legs.forEach(leg => {
+    if (leg.winner_player_id) legsWon[leg.winner_player_id] = (legsWon[leg.winner_player_id]||0) + 1;
+    Object.entries(leg.throws||{}).forEach(([pid, throws]) => {
+      throws.forEach(t => {
+        if (!t.is_bust) {
+          throwTotals[pid] = (throwTotals[pid]||0) + parseInt(t.throw_value);
+          throwCounts[pid] = (throwCounts[pid]||0) + 1;
+        }
+      });
+    });
+  });
+
+  const sortedPlayers = [...data.players].sort((a,b) => (legsWon[b.id]||0) - (legsWon[a.id]||0));
+
+  let html = `<div class="report-title">🎯 ${escH(m.game_type)} Match Report — #${matchId}</div>`;
+
+  html += `<div class="export-btns">
+    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open('report_export.php?match_id=${matchId}&format=html&download=1','_blank')">⬇ Save as HTML</button>
+    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open('report_export.php?match_id=${matchId}&format=excel','_blank')">⬇ Save as Excel</button>
+    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open('report_export.php?match_id=${matchId}&format=print','_blank')">🖨 Print / PDF</button>
+  </div>`;
+
+  html += `<div class="report-section-head">Match Overview</div>
+  <div class="ss-table-wrap"><table class="ss-table">
+  <thead><tr><th>Game Type</th><th>Legs to Win</th><th>Mode</th><th>Date</th><th>Winner</th></tr></thead>
+  <tbody><tr>
+    <td>${escH(m.game_type)}</td><td>${m.legs_to_win}</td><td>${escH(m.mode)}</td><td>${date}</td>
+    <td class="winner-text">${escH(m.winner_name||'—')}</td>
+  </tr></tbody></table></div>`;
+
+  html += `<div class="report-section-head">Player Roster</div>
+  <div class="ss-table-wrap"><table class="ss-table">
+  <thead><tr><th>Player #</th><th>Name</th><th>Team</th></tr></thead><tbody>`;
+  data.players.forEach(p => {
+    html += `<tr><td>${p.player_number}</td><td>${escH(p.player_name)}</td><td>${escH(p.team_name||'—')}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  if (legs.length) {
+    html += `<div class="report-section-head">Leg-by-Leg Results</div>
+    <div class="ss-table-wrap"><table class="ss-table">
+    <thead><tr><th>Leg #</th><th>Winner</th>`;
+    data.players.forEach(p => { html += `<th>${escH(p.player_name)} Throws</th>`; });
+    html += `</tr></thead><tbody>`;
+    legs.forEach(leg => {
+      html += `<tr><td>${leg.leg_number}</td>`;
+      html += `<td>${leg.winner_player_id && players[leg.winner_player_id] ? escH(players[leg.winner_player_id].player_name) : '—'}</td>`;
+      data.players.forEach(p => {
+        const ts = (leg.throws||{})[p.id] || [];
+        const vals = ts.map(t => t.is_bust ? `<span class="bust-text">BUST(${t.throw_value})</span>` : t.throw_value).join(', ');
+        html += `<td>${vals||'—'}</td>`;
+      });
+      html += `</tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+
+  html += `<div class="report-section-head">Final Standings</div>
+  <div class="ss-table-wrap"><table class="ss-table">
+  <thead><tr><th>Rank</th><th>Player</th><th>Team</th><th>Legs Won</th><th>Avg Throw/Leg</th></tr></thead><tbody>`;
+  sortedPlayers.forEach((p, i) => {
+    const avg = (throwCounts[p.id]||0) > 0 ? (throwTotals[p.id] / throwCounts[p.id]).toFixed(1) : '—';
+    html += `<tr><td>${i+1}</td>
+      <td class="${i===0?'winner-text':''}">${escH(p.player_name)}</td>
+      <td>${escH(p.team_name||'—')}</td>
+      <td><strong>${legsWon[p.id]||0}</strong></td>
+      <td>${avg}</td></tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  return html;
+}
+
+function closeReport() {
+  document.getElementById('report-section').classList.remove('show');
+  document.querySelectorAll('.match-card').forEach(c => c.classList.remove('selected'));
+  selectedMatchId = null;
+}
+
+window.MATCH_HISTORY_EDIT_CONFIG = {
+  endpoint: new URL('update_match.php', window.location.href).href,
+  kind: 'darts',
+  rowPrefix: 'mcard-'
+};
+
+loadHistory();
+</script>
+<script src="../match_history_edit.js"></script>
+
+<!-- ── Theme Toggle ── -->
+<script>
+(function(){
+  var btn = document.getElementById('themeToggle');
+  var stored = localStorage.getItem('theme-preference');
+  var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var isDark = stored ? stored==='dark' : prefersDark;
+  if (!isDark) document.body.classList.add('light-mode');
+  btn.textContent = isDark ? '🌙' : '☀️';
+  btn.addEventListener('click', function(){
+    var isLight = document.body.classList.toggle('light-mode');
+    localStorage.setItem('theme-preference', isLight ? 'light' : 'dark');
+    btn.textContent = isLight ? '☀️' : '🌙';
+  });
+})();
+</script>
+</body>
+</html>
