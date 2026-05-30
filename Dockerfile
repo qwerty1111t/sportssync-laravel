@@ -11,20 +11,22 @@ RUN npm run build
 FROM php:8.2-fpm-bullseye
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    curl \
-    gnupg \
-    git \
-    nginx \
-    supervisor \
-    zip \
-    unzip \
-    libzip-dev \
-    libonig-dev \
-    libpng-dev \
-    libicu-dev \
-    libxml2-dev \
-    libcurl4-openssl-dev \
+  ca-certificates \
+  curl \
+  gnupg \
+  git \
+  nginx \
+  supervisor \
+  zip \
+  unzip \
+  libzip-dev \
+  libonig-dev \
+  libpng-dev \
+  libicu-dev \
+  libxml2-dev \
+  libcurl4-openssl-dev \
+  libsqlite3-dev \
+  pkg-config \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && docker-php-ext-install pdo_mysql pdo_sqlite mbstring zip intl sockets \
