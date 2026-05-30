@@ -24,9 +24,10 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
+    dos2unix \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
-  && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
+  && docker-php-ext-install pdo_mysql pdo_sqlite mbstring zip intl sockets \
   && sed -i 's@^listen = .*@listen = 127.0.0.1:9000@' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's@^user = .*@user = www-data@' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's@^group = .*@group = www-data@' /usr/local/etc/php-fpm.d/www.conf \
@@ -40,11 +41,12 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
+  && dos2unix /usr/local/bin/entrypoint.sh \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
   && composer install --no-dev --optimize-autoloader --no-interaction \
-  && rm -rf /root/.composer/cache
-
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+  && rm -rf /root/.composer/cache \
+  && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+  && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 8000 3000
 CMD ["/usr/local/bin/entrypoint.sh"]
