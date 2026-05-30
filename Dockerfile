@@ -4,12 +4,14 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps
 COPY . .
+RUN npm install --prefix public/ws-server --legacy-peer-deps
 RUN npm run build
 
 # Build the PHP application image
 FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y \
+    curl \
     git \
     zip \
     unzip \
@@ -19,8 +21,11 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
+  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
-  && a2dismod mpm_event mpm_worker || true \
+  && a2dismod mpm_event mpm_worker \
+  && rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf \
   && a2enmod mpm_prefork rewrite \
   && rm -rf /var/lib/apt/lists/*
 
@@ -37,5 +42,5 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && sed -ri 's!<Directory /var/www/html>!<Directory /var/www/html/public>!g' /etc/apache2/apache2.conf
 
-EXPOSE 80
-CMD ["apache2-foreground"]
+EXPOSE 80 3000
+CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & exec apache2-foreground"]
