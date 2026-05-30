@@ -12,7 +12,8 @@ while ! bash -c "cat < /dev/tcp/${HOST}/${PORT}" >/dev/null 2>&1; do
   COUNT=$((COUNT+1))
   if [ ${COUNT} -ge ${TIMEOUT} ]; then
     echo "[start-nginx] timeout waiting for ${HOST}:${PORT} after ${TIMEOUT}s"
-    break
+    echo "[start-nginx] php-fpm never became available; refusing to start nginx"
+    exit 1
   fi
   sleep ${SLEEPTIME}
 done

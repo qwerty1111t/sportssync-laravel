@@ -1,8 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-PORT=${PORT:-8000}
-WS_PORT=${WS_PORT:-3000}
+# Ensure values from Railway env do not keep surrounding quotes
+strip_quotes() {
+  local v="$1"
+  v="${v#\"}"
+  v="${v%\"}"
+  printf '%s' "$v"
+}
+
+PORT=$(strip_quotes "${PORT:-8000}")
+WS_PORT=$(strip_quotes "${WS_PORT:-3000}")
+APP_KEY=$(strip_quotes "${APP_KEY:-}")
+APP_ENV=$(strip_quotes "${APP_ENV:-}")
+APP_URL=$(strip_quotes "${APP_URL:-}")
 
 # Generate nginx config from template using runtime PORT
 if [ -f /etc/nginx/nginx.conf.template ]; then
@@ -11,18 +22,6 @@ if [ -f /etc/nginx/nginx.conf.template ]; then
 fi
 
 cd /var/www/html
-
-# Ensure values from Railway env do not keep surrounding quotes
-strip_quotes() {
-  local v="$1"
-  v="${v#\"}"
-  v="${v%\"}"
-  printf '%s' "$v"
-}
-APP_KEY=$(strip_quotes "$APP_KEY")
-APP_ENV=$(strip_quotes "$APP_ENV")
-APP_URL=$(strip_quotes "$APP_URL")
-PORT=$(strip_quotes "$PORT")
 
 # Ensure php-fpm socket directory exists with proper permissions
 mkdir -p /var/run/php
