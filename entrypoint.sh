@@ -12,6 +12,18 @@ fi
 
 cd /var/www/html
 
+# Ensure values from Railway env do not keep surrounding quotes
+strip_quotes() {
+  local v="$1"
+  v="${v#\"}"
+  v="${v%\"}"
+  printf '%s' "$v"
+}
+APP_KEY=$(strip_quotes "$APP_KEY")
+APP_ENV=$(strip_quotes "$APP_ENV")
+APP_URL=$(strip_quotes "$APP_URL")
+PORT=$(strip_quotes "$PORT")
+
 # Ensure php-fpm socket directory exists with proper permissions
 mkdir -p /var/run/php
 chown -R www-data:www-data /var/run/php || true
@@ -31,7 +43,7 @@ fi
 # Set APP_KEY from environment if provided, otherwise generate one
 if [ -n "$APP_KEY" ]; then
   if grep -q '^APP_KEY=' .env; then
-    sed -i "s/^APP_KEY=.*/APP_KEY=${APP_KEY}/" .env
+    sed -i "s|^APP_KEY=.*|APP_KEY=${APP_KEY}|" .env
   else
     echo "APP_KEY=${APP_KEY}" >> .env
   fi
@@ -41,10 +53,6 @@ else
   if ! grep -q '^APP_KEY=' .env || grep -q '^APP_KEY=$' .env; then
     echo "[Init] Generating APP_KEY..."
     php artisan key:generate --force || true
-    GENERATED_KEY=$(php artisan key:generate --show 2>/dev/null || true)
-    if [ -n "$GENERATED_KEY" ]; then
-      echo "[Init] Generated APP_KEY=${GENERATED_KEY}"
-    fi
   fi
 fi
 
