@@ -12,6 +12,7 @@ FROM php:8.2-cli-bullseye
 
 RUN apt-get update && apt-get install -y \
     curl \
+    gnupg \
     git \
     nginx \
     supervisor \
@@ -23,14 +24,13 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
+  && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+  && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 COPY --from=asset-builder /app /var/www/html
-COPY --from=asset-builder /usr/local/bin/node /usr/local/bin/
-COPY --from=asset-builder /usr/local/bin/npm /usr/local/bin/
-COPY --from=asset-builder /usr/local/lib/node_modules /usr/local/lib/node_modules
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
