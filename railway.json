@@ -1,0 +1,12 @@
+{
+  "build": {
+    "dockerfilePath": "Dockerfile"
+  },
+  "services": [
+    {
+      "name": "web",
+      "startCommand": "supervisord -n -c /etc/supervisor/conf.d/supervisord.conf",
+      "ports": [80, 3000]
+    }
+  ]
+}
