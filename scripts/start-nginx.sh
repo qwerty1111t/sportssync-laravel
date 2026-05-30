@@ -1,21 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
-SOCKET=/var/run/php/php-fpm.sock
+HOST=127.0.0.1
+PORT=9000
 TIMEOUT=30
 SLEEPTIME=1
 COUNT=0
 
-echo "[start-nginx] waiting for php-fpm socket ${SOCKET}"
-while [ ! -S "${SOCKET}" ]; do
+echo "[start-nginx] waiting for php-fpm on ${HOST}:${PORT}"
+while ! bash -c "cat < /dev/tcp/${HOST}/${PORT}" >/dev/null 2>&1; do
   COUNT=$((COUNT+1))
   if [ ${COUNT} -ge ${TIMEOUT} ]; then
-    echo "[start-nginx] timeout waiting for ${SOCKET} after ${TIMEOUT}s"
-    # still try to start nginx to capture errors
+    echo "[start-nginx] timeout waiting for ${HOST}:${PORT} after ${TIMEOUT}s"
     break
   fi
   sleep ${SLEEPTIME}
 done
 
-echo "[start-nginx] socket check complete, starting nginx"
+echo "[start-nginx] php-fpm check complete, starting nginx"
 exec /usr/sbin/nginx -g 'daemon off;'
