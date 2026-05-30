@@ -81,4 +81,24 @@ if [ -f artisan ]; then
   fi
 fi
 
+# Startup diagnostics
+echo ""
+echo "============ STARTUP DIAGNOSTICS ============"
+echo "[Diagnostics] Generated nginx config:"
+if [ -f /etc/nginx/nginx.conf ]; then
+  grep "fastcgi_pass\|listen" /etc/nginx/nginx.conf | head -5
+fi
+echo "[Diagnostics] PHP-FPM listen setting:"
+grep "^listen" /usr/local/etc/php-fpm.d/www.conf || echo "  (not found)"
+echo "[Diagnostics] Laravel directory: $(pwd)"
+echo "[Diagnostics] Laravel public/index.php exists: $([ -f public/index.php ] && echo "YES" || echo "NO")"
+echo "[Diagnostics] Laravel storage permissions:"
+ls -ld storage bootstrap/cache
+echo "[Diagnostics] Configured listen ports:"
+echo "  PORT=${PORT}"
+echo "  WS_PORT=${WS_PORT}"
+echo "=============================================="
+echo ""
+
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf
+
