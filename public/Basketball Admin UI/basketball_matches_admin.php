@@ -309,11 +309,20 @@ a{text-decoration:none;color:inherit}
 <?php if (empty($matches)): ?>
           <tr class="ss-empty-row"><td colspan="9">No matches found.</td></tr>
 <?php else: foreach ($matches as $m):
-  $res = htmlspecialchars($m['match_result']);
+  // Compute display result from final scores (avoid relying on stored text)
+  $scoreA = (int)$m['team_a_score'];
+  $scoreB = (int)$m['team_b_score'];
   $badgeCls = 'ss-badge ';
-  if(strpos($m['match_result'],'WINS')!==false) $badgeCls.='ss-badge-win';
-  elseif($m['match_result']==='DRAW') $badgeCls.='ss-badge-draw';
-  else $badgeCls.='ss-badge-ongoing';
+  if ($scoreA > $scoreB) {
+    $res = htmlspecialchars($m['team_a_name'] . ' (Team A)');
+    $badgeCls .= 'ss-badge-win';
+  } elseif ($scoreB > $scoreA) {
+    $res = htmlspecialchars($m['team_b_name'] . ' (Team B)');
+    $badgeCls .= 'ss-badge-win';
+  } else {
+    $res = htmlspecialchars('Draw');
+    $badgeCls .= 'ss-badge-draw';
+  }
 ?>
           <tr>
             <td><input class="chk" type="checkbox" name="match_ids[]" value="<?= (int)$m['match_id'] ?>"></td>

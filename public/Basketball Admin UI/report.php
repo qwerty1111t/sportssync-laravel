@@ -70,9 +70,14 @@ $teamBName = h($match['team_b_name']);
 $scoreA    = (int)$match['team_a_score'];
 $scoreB    = (int)$match['team_b_score'];
 
-// Friendly label for the result area: winning team name or Draw
-$resultLabel = ($match['match_result'] === 'TEAM A WINS') ? $teamAName
-             : (($match['match_result'] === 'TEAM B WINS') ? $teamBName : 'Draw');
+// Friendly label for the result area: determine winner from final scores
+if ($scoreA > $scoreB) {
+  $resultLabel = $teamAName;
+} elseif ($scoreB > $scoreA) {
+  $resultLabel = $teamBName;
+} else {
+  $resultLabel = 'Draw';
+}
 
 // Totals
 function sumCols(array $players, array $cols): array {

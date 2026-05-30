@@ -1839,6 +1839,7 @@ $sportEmojis = [
 <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">☰</button>
 
 <script src="landingpage.js"></script>
+
 <script>
 'use strict';
 
@@ -2501,7 +2502,6 @@ function filterFeedback() {
     row.style.display = matchesQuery && matchesStatus ? '' : 'none';
   });
 }
-</script>
 </script>
 </body>
 </html>
