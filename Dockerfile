@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libcurl4-openssl-dev \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
-  && a2enmod rewrite \
+  && a2dismod mpm_event mpm_worker || true \
+  && a2enmod mpm_prefork rewrite \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
