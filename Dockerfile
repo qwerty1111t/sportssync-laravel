@@ -27,6 +27,10 @@ RUN apt-get update && apt-get install -y \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
+  && sed -i 's@^listen = .*@listen = 127.0.0.1:9000@' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's@^user = .*@user = www-data@' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's@^group = .*@group = www-data@' /usr/local/etc/php-fpm.d/www.conf \
+  && printf '\nlisten.owner = www-data\nlisten.group = www-data\nlisten.mode = 0660\n' >> /usr/local/etc/php-fpm.d/www.conf \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
