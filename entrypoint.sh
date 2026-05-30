@@ -81,23 +81,124 @@ if [ -f artisan ]; then
   fi
 fi
 
-# Startup diagnostics
+# Startup diagnostics - COMPREHENSIVE
 echo ""
-echo "============ STARTUP DIAGNOSTICS ============"
-echo "[Diagnostics] Generated nginx config:"
+echo "========================================"
+echo "      STARTUP DIAGNOSTICS - FULL"
+echo "========================================"
+echo ""
+
+# 1. Print Generated Nginx Config
+echo "[1] GENERATED NGINX CONFIGURATION:"
 if [ -f /etc/nginx/nginx.conf ]; then
-  grep "fastcgi_pass\|listen" /etc/nginx/nginx.conf | head -5
+  cat /etc/nginx/nginx.conf
+else
+  echo "ERROR: /etc/nginx/nginx.conf NOT FOUND"
 fi
-echo "[Diagnostics] PHP-FPM listen setting:"
+echo ""
+
+# 2. Test Nginx Configuration
+echo "[2] NGINX CONFIGURATION TEST (nginx -T):"
+/usr/sbin/nginx -t 2>&1 || echo "NGINX TEST FAILED"
+echo ""
+
+# 3. Show PHP-FPM Config
+echo "[3] PHP-FPM CONFIGURATION:"
+echo "Active listen setting:"
 grep "^listen" /usr/local/etc/php-fpm.d/www.conf || echo "  (not found)"
-echo "[Diagnostics] Laravel directory: $(pwd)"
-echo "[Diagnostics] Laravel public/index.php exists: $([ -f public/index.php ] && echo "YES" || echo "NO")"
-echo "[Diagnostics] Laravel storage permissions:"
+echo ""
+
+# 4. Test PHP-FPM Configuration
+echo "[4] PHP-FPM CONFIGURATION TEST (php-fpm -tt):"
+/usr/local/sbin/php-fpm -tt 2>&1 || echo "PHP-FPM TEST FAILED"
+echo ""
+
+# 5. Verify File Existence
+echo "[5] FILE EXISTENCE CHECKS:"
+echo "Laravel root: $(pwd)"
+echo "  public/index.php: $([ -f public/index.php ] && echo 'EXISTS' || echo 'MISSING')"
+echo "  storage: $([ -d storage ] && echo 'EXISTS' || echo 'MISSING')"
+echo "  bootstrap/cache: $([ -d bootstrap/cache ] && echo 'EXISTS' || echo 'MISSING')"
+echo "  .env: $([ -f .env ] && echo 'EXISTS' || echo 'MISSING')"
+echo "  artisan: $([ -f artisan ] && echo 'EXISTS' || echo 'MISSING')"
+echo ""
+
+# 6. Verify Permissions
+echo "[6] PERMISSIONS AND OWNERSHIP:"
 ls -ld storage bootstrap/cache
-echo "[Diagnostics] Configured listen ports:"
+ls -l public/index.php
+echo ""
+
+# 7. Network Listening Ports (after startup)
+echo "[7] CONFIGURED PORTS:"
 echo "  PORT=${PORT}"
 echo "  WS_PORT=${WS_PORT}"
-echo "=============================================="
+echo ""
+
+# 8. Laravel .env Status
+echo "[8] LARAVEL ENVIRONMENT (.env) - FIRST 30 LINES:"
+if [ -f .env ]; then
+    head -30 .env || echo "  (read failed)"
+    echo ""
+    echo "  APP_KEY line:"
+    grep "^APP_KEY" .env || echo "    (APP_KEY not found)"
+    echo "  APP_DEBUG line:"
+    grep "^APP_DEBUG" .env || echo "    (APP_DEBUG not found)"
+    echo "  APP_ENV line:"
+    grep "^APP_ENV" .env || echo "    (APP_ENV not found)"
+else
+    echo "  (no .env file)"
+fi
+echo ""
+
+# 9. Check PHP Extensions
+echo "[9] PHP EXTENSIONS LOADED:"
+php -m | grep -E "PDO|Core|json|filter" || echo "  (checking failed)"
+echo ""
+
+# 10. Check Composer Installation Status
+echo "[10] COMPOSER/VENDOR STATUS:"
+if [ -d vendor ]; then
+    echo "  vendor/ directory EXISTS"
+    vendor_count=$(find vendor -type f -name "*.php" | wc -l)
+    echo "  PHP files in vendor: $vendor_count"
+    if [ -f vendor/autoload.php ]; then
+        echo "  ✓ vendor/autoload.php EXISTS"
+    else
+        echo "  ✗ vendor/autoload.php MISSING"
+    fi
+    if [ -d vendor/laravel ]; then
+        echo "  ✓ vendor/laravel/ EXISTS"
+    else
+        echo "  ✗ vendor/laravel/ MISSING"
+    fi
+else
+    echo "  ✗ vendor/ directory MISSING"
+fi
+echo ""
+
+# 11. Try PHP to autoload
+echo "[11] AUTOLOADER TEST:"
+php -r "require 'vendor/autoload.php'; echo 'Autoloader loaded successfully\n';" 2>&1 || echo "  (autoloader test failed)"
+echo ""
+
+# 12. Bootstrap Test (before Laravel request)
+echo "[12] LARAVEL BOOTSTRAP TEST:"
+php -r "
+\$app = require 'bootstrap/app.php';
+echo 'Bootstrap loaded successfully\n';
+echo 'App class: ' . get_class(\$app) . '\n';
+" 2>&1 || echo "  (bootstrap test failed)"
+echo ""
+
+# 10. FastCGI Connection Test
+echo "[13] FASTCGI CONNECTION TEST:"
+(echo -n 'GET / HTTP/1.0\r\n\r\n'; sleep 1) | nc 127.0.0.1 9000 2>&1 | head -20 || echo "  (netcat failed or no response)"
+echo ""
+
+echo "========================================"
+echo "   END STARTUP DIAGNOSTICS"
+echo "========================================"
 echo ""
 
 exec /usr/bin/supervisord -n -c /etc/supervisor/conf.d/supervisord.conf

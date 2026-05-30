@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && sed -i 's@^listen = .*@listen = 127.0.0.1:9000@' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's@^user = .*@user = www-data@' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's@^group = .*@group = www-data@' /usr/local/etc/php-fpm.d/www.conf \
+  && grep "^listen\|^user\|^group" /usr/local/etc/php-fpm.d/www.conf \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 WORKDIR /var/www/html
@@ -45,7 +46,8 @@ COPY scripts/start-nginx.sh /usr/local/bin/start-nginx.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh \
   && chmod +x /usr/local/bin/start-nginx.sh \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-  && composer install --no-dev --optimize-autoloader --no-interaction \
+  && composer install --no-dev --optimize-autoloader --no-interaction --verbose \
+  && [ -f vendor/autoload.php ] || (echo "ERROR: Composer install failed - vendor/autoload.php not found"; exit 1) \
   && rm -rf /root/.composer/cache \
   && mkdir -p /var/run/php \
   && chown -R www-data:www-data /var/run/php /var/www/html/storage /var/www/html/bootstrap/cache \
