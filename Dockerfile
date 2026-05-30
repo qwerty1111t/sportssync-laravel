@@ -41,8 +41,10 @@ COPY --from=asset-builder /app /var/www/html
 COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+COPY scripts/start-nginx.sh /usr/local/bin/start-nginx.sh
 
 RUN chmod +x /usr/local/bin/entrypoint.sh \
+  && chmod +x /usr/local/bin/start-nginx.sh \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
   && composer install --no-dev --optimize-autoloader --no-interaction \
   && rm -rf /root/.composer/cache \
