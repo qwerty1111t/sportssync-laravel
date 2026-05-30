@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 
 class TableTennisAdminController extends Controller
 {
+    use LegacyWrapperTrait;
+
     public function __construct()
     {
         $this->middleware(['auth', 'ensure.role:admin']);
@@ -30,6 +32,7 @@ class TableTennisAdminController extends Controller
         $html = ob_get_clean();
         $html = str_replace('tabletennis_admin.css', '/TABLE TENNIS ADMIN UI/tabletennis_admin.css', $html);
         $html = str_replace('tabletennis_admin.js', '/TABLE TENNIS ADMIN UI/tabletennis_admin.js', $html);
+        $this->injectLegacyBasePath('TABLE TENNIS ADMIN UI', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 

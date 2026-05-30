@@ -5,6 +5,8 @@ use Illuminate\Http\Request;
 
 class TableTennisViewerController extends Controller
 {
+    use LegacyWrapperTrait;
+
     public function show(Request $request)
     {
         $legacyPath = public_path('TABLE TENNIS ADMIN UI/tabletennis_viewer.php');
@@ -20,6 +22,7 @@ class TableTennisViewerController extends Controller
         ob_start(); include $legacyPath; $html = ob_get_clean();
         $html = str_replace('tabletennis_viewer.css', '/TABLE TENNIS ADMIN UI/tabletennis_viewer.css', $html);
         $html = str_replace('tabletennis_viewer.js', '/TABLE TENNIS ADMIN UI/tabletennis_viewer.js', $html);
+        $this->injectLegacyBasePath('TABLE TENNIS ADMIN UI', $html);
         return view('tabletennis.viewer', ['legacy_html' => $html]);
     }
 }

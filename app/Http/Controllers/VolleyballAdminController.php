@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 
 class VolleyballAdminController extends Controller
 {
+    use LegacyWrapperTrait;
+
     public function __construct()
     {
         $this->middleware(['auth', 'ensure.role:admin']);
@@ -36,6 +38,7 @@ class VolleyballAdminController extends Controller
         $html = ob_get_clean();
         $html = str_replace('volleyball_admin.css', '/Volleyball Admin UI/volleyball_admin.css', $html);
         $html = str_replace('volleyball_viewer.js', '/Volleyball Admin UI/volleyball_viewer.js', $html);
+        $this->injectLegacyBasePath('Volleyball Admin UI', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 

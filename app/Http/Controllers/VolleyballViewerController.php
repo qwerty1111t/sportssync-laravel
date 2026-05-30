@@ -5,6 +5,8 @@ use Illuminate\Http\Request;
 
 class VolleyballViewerController extends Controller
 {
+    use LegacyWrapperTrait;
+
     public function show(Request $request)
     {
         $legacyPath = public_path('Volleyball Admin UI/volleyball_viewer.php');
@@ -25,6 +27,7 @@ class VolleyballViewerController extends Controller
         ob_start(); include $legacyPath; $html = ob_get_clean();
         $html = str_replace('volleyball_viewer.css', '/Volleyball Admin UI/volleyball_viewer.css', $html);
         $html = str_replace('volleyball_viewer.js', '/Volleyball Admin UI/volleyball_viewer.js', $html);
+        $this->injectLegacyBasePath('Volleyball Admin UI', $html);
         return view('volleyball.viewer', ['legacy_html' => $html]);
     }
 }

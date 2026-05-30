@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Basketball Admin (Legacy)</title>
+  <base href="/Basketball Admin UI/">
   <link rel="stylesheet" href="/Basketball Admin UI/style.css">
   <link rel="stylesheet" href="/Basketball Admin UI/basketball_viewer.css">
   </head>

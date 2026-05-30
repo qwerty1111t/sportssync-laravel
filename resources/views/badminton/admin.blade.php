@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Badminton Admin (Legacy)</title>
+    <base href="/Badminton Admin UI/">
     <link rel="stylesheet" href="/assets/badminton/badminton_admin.css">
     <style>/* small wrapper to ensure full-width */ body { background: #111; }</style>
     </head>

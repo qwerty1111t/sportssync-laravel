@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Log;
 
 class DartsAdminController extends Controller
 {
+    use LegacyWrapperTrait;
+
     public function __construct()
     {
         $this->middleware(['auth', 'ensure.role:admin']);
@@ -34,6 +36,7 @@ class DartsAdminController extends Controller
         $html = $script . $html;
         // Fix a couple of resource paths that expect the legacy folder root
         $html = str_replace('darts.sql', $legacyDir . 'darts.sql', $html);
+        $this->injectLegacyBasePath('DARTS ADMIN UI', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 

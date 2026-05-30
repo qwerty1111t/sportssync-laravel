@@ -5,6 +5,8 @@ use Illuminate\Http\Request;
 
 class BadmintonViewerController extends Controller
 {
+    use LegacyWrapperTrait;
+
     public function show(Request $request)
     {
         $legacyPath = public_path('Badminton Admin UI/badminton_viewer.php');
@@ -27,6 +29,7 @@ class BadmintonViewerController extends Controller
         // Fix relative asset paths
         $html = str_replace('badminton_viewer.css', '/Badminton Admin UI/badminton_viewer.css', $html);
         $html = str_replace('badminton_viewer.js', '/Badminton Admin UI/badminton_viewer.js', $html);
+        $this->injectLegacyBasePath('Badminton Admin UI', $html);
 
         return view('badminton.viewer', ['legacy_html' => $html]);
     }
