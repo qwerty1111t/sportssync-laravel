@@ -5,7 +5,7 @@
   "services": [
     {
       "name": "web",
-      "startCommand": "supervisord -n -c /etc/supervisor/conf.d/supervisord.conf",
+      "startCommand": "/usr/local/bin/entrypoint.sh",
       "ports": [8000, 3000]
     }
   ]
