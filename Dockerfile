@@ -30,7 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y --no-install-recommends nodejs \
   && docker-php-ext-install pdo_mysql pdo_sqlite mbstring zip intl sockets \
-  && sed -i 's@^listen = .*@listen = 127.0.0.1:9000@' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's@^listen = .*@listen = /var/run/php/php-fpm.sock@' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's@^user = .*@user = www-data@' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's@^group = .*@group = www-data@' /usr/local/etc/php-fpm.d/www.conf \
   && printf '\nlisten.owner = www-data\nlisten.group = www-data\nlisten.mode = 0660\n' >> /usr/local/etc/php-fpm.d/www.conf \
@@ -46,7 +46,8 @@ RUN chmod +x /usr/local/bin/entrypoint.sh \
   && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
   && composer install --no-dev --optimize-autoloader --no-interaction \
   && rm -rf /root/.composer/cache \
-  && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+  && mkdir -p /var/run/php \
+  && chown -R www-data:www-data /var/run/php /var/www/html/storage /var/www/html/bootstrap/cache \
   && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 8000 3000
