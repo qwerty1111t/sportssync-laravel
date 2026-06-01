@@ -7,8 +7,8 @@ COPY . .
 RUN npm install --prefix public/ws-server --legacy-peer-deps
 RUN npm run build
 
-# Build the PHP application image with explicit Apache MPM configuration
-FROM php:8.2-apache
+# Build the PHP application image with nginx + php-fpm
+FROM php:8.2-fpm
 
 RUN apt-get update && apt-get install -y \
     curl \
@@ -21,31 +21,37 @@ RUN apt-get update && apt-get install -y \
     libicu-dev \
     libxml2-dev \
     libcurl4-openssl-dev \
+    nginx \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
   && rm -rf /var/lib/apt/lists/*
 
-# Disable mpm_event and enable mpm_prefork
-RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
-  && a2enmod mpm_prefork rewrite \
-  && rm -f /etc/apache2/mods-enabled/mpm_event* /etc/apache2/mods-enabled/mpm_worker*
-
-# Restart Apache to apply changes
-RUN service apache2 restart || true
+# Configure PHP-FPM to run as www-data
+RUN sed -i 's/user = .*/user = www-data/' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's/group = .*/group = www-data/' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's/listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
 
 WORKDIR /var/www/html
 COPY --from=asset-builder /app /var/www/html
 
+# Install Composer and dependencies
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
   && composer install --no-dev --optimize-autoloader --no-interaction \
   && rm -rf /root/.composer/cache
 
+# Set proper permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
-    && sed -ri 's!<Directory /var/www/html>!<Directory /var/www/html/public>!g' /etc/apache2/apache2.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Copy startup script
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
+# Create nginx cache/pid directories
+RUN mkdir -p /var/run/nginx /var/cache/nginx
 
 EXPOSE 80 3000
-CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & exec apache2-foreground"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
