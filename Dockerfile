@@ -58,5 +58,9 @@ RUN chmod +x /docker-entrypoint.sh
 # Create nginx cache/pid directories
 RUN mkdir -p /var/run/nginx /var/cache/nginx
 
+# Set production environment defaults (Railway can override these)
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+
 EXPOSE 80 3000
 ENTRYPOINT ["/docker-entrypoint.sh"]

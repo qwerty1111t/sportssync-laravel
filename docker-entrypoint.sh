@@ -6,18 +6,44 @@ echo "Starting PHP-FPM and Nginx..."
 # Initialize Laravel before starting services
 cd /var/www/html
 
-# Create .env from .env.example if it doesn't exist (APP_KEY will be read from Railway env vars)
+# Create .env file if it doesn't exist
 if [ ! -f .env ]; then
     echo "Creating .env file from .env.example..."
     cp .env.example .env
 fi
 
-# Run migrations and clear cache
+# Set production environment defaults (only if not already set by Railway)
+export APP_ENV=${APP_ENV:-production}
+export APP_DEBUG=${APP_DEBUG:-false}
+
+# DO NOT override DB_CONNECTION - use Railway's setting
+# Railway sets: DB_CONNECTION=mysql with DB_HOST, DB_PORT, etc.
+
+# Verify critical environment variables are set
+if [ -z "$APP_KEY" ]; then
+    echo "ERROR: APP_KEY not set in Railway environment variables!"
+    exit 1
+fi
+
+echo "Starting with:"
+echo "  APP_ENV=$APP_ENV"
+echo "  APP_DEBUG=$APP_DEBUG"
+echo "  DB_CONNECTION=$DB_CONNECTION"
+echo "  DB_HOST=$DB_HOST"
+
+# Run migrations with detailed output
 echo "Running Laravel migrations..."
-php artisan migrate --force 2>/dev/null || true
+php artisan migrate --force
+
+# Clear all caches
+echo "Clearing caches..."
 php artisan config:clear
 php artisan cache:clear
 php artisan view:clear
+
+# Optimize for production
+echo "Optimizing for production..."
+php artisan optimize
 
 # Set proper permissions
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
