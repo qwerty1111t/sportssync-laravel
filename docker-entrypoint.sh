@@ -12,12 +12,21 @@ if [ ! -f .env ]; then
     cp .env.example .env
 fi
 
-# Set production environment defaults (only if not already set by Railway)
+# Map Railway's MYSQL_* variables to Laravel's DB_* variables
+# Railway provides: MYSQLHOST, MYSQLUSER, MYSQLPASSWORD, MYSQLPORT, MYSQL_DATABASE
+if [ ! -z "$MYSQLHOST" ]; then
+    echo "Mapping Railway MySQL variables to Laravel DB_* format..."
+    export DB_CONNECTION=${DB_CONNECTION:-mysql}
+    export DB_HOST=${MYSQLHOST}
+    export DB_PORT=${MYSQLPORT:-3306}
+    export DB_DATABASE=${MYSQL_DATABASE}
+    export DB_USERNAME=${MYSQLUSER}
+    export DB_PASSWORD=${MYSQLPASSWORD}
+fi
+
+# Set production environment defaults (only if not already set)
 export APP_ENV=${APP_ENV:-production}
 export APP_DEBUG=${APP_DEBUG:-false}
-
-# DO NOT override DB_CONNECTION - use Railway's setting
-# Railway sets: DB_CONNECTION=mysql with DB_HOST, DB_PORT, etc.
 
 # Verify critical environment variables are set
 if [ -z "$APP_KEY" ]; then
@@ -30,6 +39,9 @@ echo "  APP_ENV=$APP_ENV"
 echo "  APP_DEBUG=$APP_DEBUG"
 echo "  DB_CONNECTION=$DB_CONNECTION"
 echo "  DB_HOST=$DB_HOST"
+echo "  DB_PORT=$DB_PORT"
+echo "  DB_DATABASE=$DB_DATABASE"
+echo "  DB_USERNAME=$DB_USERNAME"
 
 # Run migrations with detailed output
 echo "Running Laravel migrations..."
