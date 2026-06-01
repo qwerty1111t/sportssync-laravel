@@ -25,6 +25,7 @@ RUN apt-get update && apt-get install -y \
   && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
   && a2dismod mpm_event mpm_worker || true \
+  && rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf || true \
   && a2enmod mpm_prefork rewrite || true \
   && rm -rf /var/lib/apt/lists/*
 
@@ -42,4 +43,4 @@ RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!g' /
     && sed -ri 's!<Directory /var/www/html>!<Directory /var/www/html/public>!g' /etc/apache2/apache2.conf
 
 EXPOSE 80 3000
-CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & echo '--- APACHE MODULES ---' >&2; apache2ctl -M >&2 || true; exec apache2-foreground"]
+CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & echo '--- MODS-ENABLED ---' >&2; ls -la /etc/apache2/mods-enabled >&2 || true; echo '--- APACHE MODULES ---' >&2; apache2ctl -M >&2 || true; exec apache2-foreground"]
