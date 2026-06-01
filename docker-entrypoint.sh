@@ -1,7 +1,7 @@
 #!/bin/bash
-set -e
 
-echo "Starting services..."
+echo "Starting Container"
+echo "Starting PHP-FPM and Nginx..."
 
 # Create supervisor config
 cat > /etc/supervisor/conf.d/services.conf << 'EOF'
@@ -34,5 +34,5 @@ EOF
 
 mkdir -p /var/log/supervisor
 
-# Start supervisord in foreground
-exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+# Start supervisord in foreground with nodaemon (-n) flag
+exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf -n
