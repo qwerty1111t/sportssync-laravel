@@ -333,8 +333,9 @@ a{text-decoration:none;color:inherit}
             <td><span class="<?= $badgeCls ?>"><?= $res ?></span></td>
             <td style="color:var(--text-muted)"><?= htmlspecialchars($m['committee'] ?? '') ?></td>
             <td style="color:var(--text-muted);font-size:0.82rem;white-space:nowrap"><?= htmlspecialchars($m['created_at']) ?></td>
-            <td style="white-space:nowrap">
+            <td style="white-space:nowrap;display:flex;gap:8px;">
               <a class="ss-btn-link" href="report.php?match_id=<?= (int)$m['match_id'] ?>" target="_blank">Report</a>
+              <a class="ss-btn ss-btn-sm ss-btn-secondary" href="edit_match.php?match_id=<?= (int)$m['match_id'] ?>">✎ Edit</a>
               <button type="button" class="ss-btn ss-btn-sm ss-btn-danger" onclick="bbResetMatch(<?= (int)$m['match_id'] ?>")>Reset</button>
             </td>
           </tr>
@@ -376,7 +377,31 @@ a{text-decoration:none;color:inherit}
 document.getElementById('chkAll').addEventListener('change', function(){ document.querySelectorAll('.chk').forEach(c=>c.checked=this.checked); });
 document.getElementById('refreshBtn').addEventListener('click', function(){ location.reload(); });
 function bbResetMatch(id) { if (!confirm('Reset match ' + id + '? This will clear saved data.')) return; fetch('delete_match.php', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: id }) }).then(r => r.json()).then(j => { if (j && j.success) { alert('Match reset'); location.reload(); } else { alert('Reset failed: ' + (j && j.error ? j.error : 'Unknown')); } }).catch(e=>{console.error(e); alert('Reset request failed');}); }
-document.getElementById('deleteSelected').addEventListener('click', function(){ const ids = Array.from(document.querySelectorAll('.chk:checked')).map(i=>parseInt(i.value,10)); if (!ids.length) { alert('Select at least one match to delete.'); return; } if (!confirm('Delete selected match(es)? This will remove match records permanently.')) return; fetch('delete_match.php', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_ids: ids }) }).then(r=>r.json()).then(j=>{ if (j && j.success) { alert('Deleted'); location.reload(); } else { alert('Delete failed: ' + (j && j.message ? j.message : 'Unknown')); } }).catch(e=>{console.error(e); alert('Delete request failed');}); });
+document.getElementById('deleteSelected').addEventListener('click', function(){ 
+  const ids = Array.from(document.querySelectorAll('.chk:checked')).map(i=>parseInt(i.value,10)); 
+  if (!ids.length) { 
+    alert('Select at least one match to delete.'); 
+    return; 
+  } 
+  const msg = `Delete ${ids.length} match(es)?\n\n⚠️  This will permanently remove:\n• Match records\n• All player statistics\n• Game reports\n\nThis action CANNOT be undone.`;
+  if (!confirm(msg)) 
+    return; 
+  fetch('delete_match.php', { 
+    method: 'POST', 
+    credentials: 'include', 
+    headers: { 'Content-Type': 'application/json' }, 
+    body: JSON.stringify({ match_ids: ids }) 
+  }).then(r=>r.json())
+    .then(j=>{ 
+      if (j && j.success) { 
+        alert(`✓ Successfully deleted ${ids.length} match(es)`); 
+        location.reload(); 
+      } else { 
+        alert('Delete failed: ' + (j && j.message ? j.message : 'Unknown')); 
+      } 
+    })
+    .catch(e=>{console.error(e); alert('Delete request failed');}); 
+});
 document.getElementById('resetSelected').addEventListener('click', function(){ const ids = Array.from(document.querySelectorAll('.chk:checked')).map(i=>parseInt(i.value,10)); if (!ids.length) { alert('Select at least one match to reset.'); return; } if (!confirm('Reset selected match(es)?')) return; Promise.all(ids.map(id => fetch('delete_match.php', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: id }) }).then(r=>r.json()).catch(()=>({success:false})) )).then(results=>{ alert('Reset completed'); location.reload(); }).catch(e=>{console.error(e); alert('Reset request failed'); }); });
 try {
   const expBtn = document.getElementById('exportCsvBtn');

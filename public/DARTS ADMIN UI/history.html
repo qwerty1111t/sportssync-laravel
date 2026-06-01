@@ -141,6 +141,14 @@ a{text-decoration:none;color:inherit}
   box-shadow:var(--shadow-gold);margin-bottom:16px;
 }
 
+/* ── Action Bar ── */
+.ss-action-bar{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  margin-bottom:16px;display:none;
+}
+.ss-action-bar.show{display:flex}
+.ss-action-bar .ss-btn{margin:0}
+
 /* ── Buttons ── */
 .ss-btn{
   display:inline-flex;align-items:center;gap:7px;
@@ -158,7 +166,7 @@ a{text-decoration:none;color:inherit}
 .ss-btn-danger{background:transparent;color:var(--danger);border-color:var(--danger)}
 .ss-btn-danger:hover{background:var(--danger-dim)}
 .ss-btn-ghost{background:var(--surface-alt);color:var(--text-muted);border-color:var(--border-s)}
-.ss-btn-ghost:hover{color:var(--text);border-color:var(--border-s)}
+.ss-btn-ghost:hover{color:var(--text);border-color:var(--primary);color:var(--primary)}
 .ss-btn-sm{padding:6px 14px;font-size:0.76rem;min-height:34px}
 
 /* ════════════════ MATCH CARDS ════════════════ */
@@ -169,6 +177,7 @@ a{text-decoration:none;color:inherit}
   border-radius:var(--radius);padding:16px 20px;
   cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;
   position:relative;
+  display:flex;gap:12px;align-items:flex-start;
 }
 .match-card::before{
   content:'';position:absolute;left:0;top:0;bottom:0;
@@ -179,6 +188,18 @@ a{text-decoration:none;color:inherit}
 .match-card:hover::before{background:var(--primary)}
 .match-card.selected{border-color:var(--primary);box-shadow:0 0 0 1px rgba(255,215,0,0.25)}
 .match-card.selected::before{background:var(--primary)}
+
+.match-card-checkbox{
+  margin-top:4px;flex-shrink:0;
+}
+.match-card-checkbox input[type="checkbox"]{
+  width:16px;height:16px;cursor:pointer;accent-color:var(--primary);
+}
+
+.match-card-content{
+  flex:1;cursor:pointer;
+  pointer-events:none;
+}
 
 .match-card-header{
   display:flex;justify-content:space-between;align-items:center;
@@ -203,6 +224,13 @@ a{text-decoration:none;color:inherit}
   color:var(--success);font-weight:600;
   display:inline-flex;align-items:center;gap:4px;
 }
+
+.match-card-actions{
+  display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;
+  align-items:center;
+  pointer-events:auto;
+}
+.match-card-actions .ss-btn{margin:0}
 
 /* ── Status Badges ── */
 .ss-badge{
@@ -313,11 +341,16 @@ a{text-decoration:none;color:inherit}
   .ss-nav-inner{padding:0 16px}
   .ss-breadcrumb{display:none}
   .ss-page-header{flex-direction:column;align-items:flex-start}
+  .match-card{flex-direction:column}
+  .match-card-actions{flex-direction:row;width:100%;gap:8px}
+  .match-card-actions .ss-btn{flex:1;justify-content:center}
 }
 @media(max-width:480px){
   .ss-brand-name{display:none}
   .match-card{padding:12px 14px}
   #report-content{padding:16px}
+  .match-card-actions{flex-direction:column;gap:8px}
+  .match-card-actions .ss-btn{width:100%}
 }
 </style>
 </head>
@@ -347,6 +380,12 @@ a{text-decoration:none;color:inherit}
 
   <div class="ss-page-header">
     <h1 class="ss-page-title">🎯 Match History</h1>
+  </div>
+
+  <!-- Action Bar -->
+  <div id="action-bar" class="ss-action-bar">
+    <button id="resetSelected" class="ss-btn ss-btn-secondary">↺ Deselect All</button>
+    <button id="deleteSelected" class="ss-btn ss-btn-danger">✕ Delete Selected</button>
   </div>
 
   <!-- Match List Card -->
@@ -429,6 +468,7 @@ function renderCards() {
     page.forEach(function(card){ list.appendChild(card); });
   }
   renderPagination(allMatchCards.length);
+  updateActionBar();
 }
 
 function loadHistory() {
@@ -447,11 +487,21 @@ function loadHistory() {
         const card = document.createElement('div');
         card.className = 'match-card';
         card.id = 'mcard-' + m.id;
+        card.dataset.matchId = m.id;
 
         const date = new Date(m.created_at).toLocaleString();
         const statusClass = m.status === 'completed' ? 'ss-badge-completed' : 'ss-badge-ongoing';
 
-        card.innerHTML = `
+        // Checkbox
+        const checkboxDiv = document.createElement('div');
+        checkboxDiv.className = 'match-card-checkbox';
+        checkboxDiv.innerHTML = `<input type="checkbox" class="match-chk" value="${m.id}">`;
+        checkboxDiv.querySelector('input').addEventListener('change', updateActionBar);
+
+        // Content
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'match-card-content';
+        contentDiv.innerHTML = `
           <div class="match-card-header">
             <div class="match-card-title">Match #${m.id} — ${escH(m.game_type)}</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -468,13 +518,20 @@ function loadHistory() {
           </div>
         `;
 
-        // Edit button (appended to meta row, logic untouched)
-        const meta = card.querySelector('.match-card-meta');
+        // Click to open report
+        contentDiv.addEventListener('click', () => {
+          window.open('darts_report.php?match_id=' + encodeURIComponent(m.id), '_blank');
+        });
+
+        // Actions
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'match-card-actions';
+
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
         editBtn.className = 'ss-btn ss-btn-ghost ss-btn-sm';
         editBtn.title = 'Edit this saved match';
-        editBtn.textContent = 'Edit';
+        editBtn.textContent = '✎ Edit';
         editBtn.addEventListener('click', (ev) => {
           ev.preventDefault();
           ev.stopPropagation();
@@ -486,11 +543,24 @@ function loadHistory() {
             }
           }
         });
-        if (meta) meta.appendChild(editBtn);
 
-        card.onclick = () => {
-          window.open('darts_report.php?match_id=' + encodeURIComponent(m.id), '_blank');
-        };
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'ss-btn ss-btn-danger ss-btn-sm';
+        deleteBtn.title = 'Delete this match';
+        deleteBtn.textContent = '✕ Delete';
+        deleteBtn.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          deleteMatch(m.id);
+        });
+
+        actionsDiv.appendChild(editBtn);
+        actionsDiv.appendChild(deleteBtn);
+
+        card.appendChild(checkboxDiv);
+        card.appendChild(contentDiv);
+        card.appendChild(actionsDiv);
 
         allMatchCards.push(card);
       });
@@ -614,6 +684,81 @@ function closeReport() {
   document.querySelectorAll('.match-card').forEach(c => c.classList.remove('selected'));
   selectedMatchId = null;
 }
+
+function updateActionBar() {
+  const checkedCount = document.querySelectorAll('.match-chk:checked').length;
+  const bar = document.getElementById('action-bar');
+  if (checkedCount > 0) {
+    bar.classList.add('show');
+  } else {
+    bar.classList.remove('show');
+  }
+}
+
+function deleteMatch(matchId) {
+  if (!confirm('Delete match #' + matchId + '?\n\n⚠️ This will permanently remove:\n• Match record\n• All player data\n• Game statistics\n\nThis action CANNOT be undone.')) {
+    return;
+  }
+  
+  fetch('delete_match.php', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ match_id: matchId })
+  })
+  .then(r => r.json())
+  .then(j => {
+    if (j && j.success) {
+      alert('✓ Match deleted');
+      loadHistory();
+    } else {
+      alert('Delete failed: ' + (j && j.error ? j.error : 'Unknown'));
+    }
+  })
+  .catch(e => {
+    console.error(e);
+    alert('Delete request failed');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('resetSelected').addEventListener('click', function() {
+    document.querySelectorAll('.match-chk').forEach(chk => chk.checked = false);
+    updateActionBar();
+  });
+
+  document.getElementById('deleteSelected').addEventListener('click', function() {
+    const ids = Array.from(document.querySelectorAll('.match-chk:checked')).map(c => parseInt(c.value, 10));
+    if (!ids.length) {
+      alert('Select at least one match to delete.');
+      return;
+    }
+    
+    const msg = `Delete ${ids.length} match(es)?\n\n⚠️ This will permanently remove:\n• Match records\n• All player data\n• Game statistics\n\nThis action CANNOT be undone.`;
+    if (!confirm(msg)) return;
+
+    fetch('delete_match.php', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ match_ids: ids })
+    })
+    .then(r => r.json())
+    .then(j => {
+      if (j && j.success) {
+        alert(`✓ Successfully deleted ${ids.length} match(es)`);
+        loadHistory();
+      } else {
+        alert('Delete failed: ' + (j && j.message ? j.message : 'Unknown'));
+      }
+    })
+    .catch(e => {
+      console.error(e);
+      alert('Delete request failed');
+    });
+  });
+});
+
 
 window.MATCH_HISTORY_EDIT_CONFIG = {
   endpoint: new URL('update_match.php', window.location.href).href,

@@ -1708,12 +1708,8 @@ $sportEmojis = [
           <div class="panel-header"><span class="panel-title"><span class="dot"></span>General</span></div>
           <div class="settings-group">
             <div class="settings-row">
-              <div><div class="settings-key">User Registration</div><div class="settings-hint">Allow new users to register</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
-            </div>
-            <div class="settings-row">
-              <div><div class="settings-key">Email Notifications</div><div class="settings-hint">Send alerts for key events</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              <div><div class="settings-key">User Registration <span style="color:#ff9800;font-size:0.75rem;font-weight:600;margin-left:6px;">(to be continued)</span></div><div class="settings-hint">Allow new users to register</div></div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled><span class="toggle-slider"></span></label>
             </div>
             <div class="settings-row" id="maintenanceRow">
               <div>
@@ -1733,10 +1729,6 @@ $sportEmojis = [
                 <span class="toggle-slider"></span>
               </label>
             </div>
-            <div class="settings-row">
-              <div><div class="settings-key">Public Leaderboard</div><div class="settings-hint">Show leaderboard to non-logged users</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
-            </div>
           </div>
         </div>
 
@@ -1744,44 +1736,21 @@ $sportEmojis = [
           <div class="panel-header"><span class="panel-title"><span class="dot"></span>Security</span></div>
           <div class="settings-group">
             <div class="settings-row">
-              <div><div class="settings-key">Two-Factor Auth</div><div class="settings-hint">Require 2FA for all admin accounts</div></div>
-              <label class="toggle-switch"><input type="checkbox"><span class="toggle-slider"></span></label>
+              <div><div class="settings-key">Session Timeout <span style="color:#ff9800;font-size:0.75rem;font-weight:600;margin-left:6px;">(to be continued)</span></div><div class="settings-hint">Auto-logout after 30 minutes idle</div></div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled><span class="toggle-slider"></span></label>
             </div>
             <div class="settings-row">
-              <div><div class="settings-key">Session Timeout</div><div class="settings-hint">Auto-logout after 30 minutes idle</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              <div><div class="settings-key">Login Attempt Limit <span style="color:#ff9800;font-size:0.75rem;font-weight:600;margin-left:6px;">(to be continued)</span></div><div class="settings-hint">Lock account after 5 failed attempts</div></div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled><span class="toggle-slider"></span></label>
             </div>
             <div class="settings-row">
-              <div><div class="settings-key">Login Attempt Limit</div><div class="settings-hint">Lock account after 5 failed attempts</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
-            </div>
-            <div class="settings-row">
-              <div><div class="settings-key">Activity Logging</div><div class="settings-hint">Log all admin and user actions</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+              <div><div class="settings-key">Activity Logging <span style="color:#ff9800;font-size:0.75rem;font-weight:600;margin-left:6px;">(to be continued)</span></div><div class="settings-hint">Log all admin and user actions</div></div>
+              <label class="toggle-switch"><input type="checkbox" checked disabled><span class="toggle-slider"></span></label>
             </div>
           </div>
         </div>
 
-        <div class="admin-panel">
-          <div class="panel-header"><span class="panel-title"><span class="dot"></span>Database</span></div>
-          <div class="settings-group">
-            <div class="settings-row">
-              <div><div class="settings-key">Auto Backup</div><div class="settings-hint">Daily automated database backup</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
-            </div>
-            <div class="settings-row">
-              <div><div class="settings-key">Query Caching</div><div class="settings-hint">Cache frequent read queries</div></div>
-              <label class="toggle-switch"><input type="checkbox" checked><span class="toggle-slider"></span></label>
-            </div>
-            <div class="settings-row" style="border-bottom:none;padding-bottom:0;">
-              <div style="flex:1;">
-                <div class="settings-key" style="margin-bottom:8px;">Max Connections</div>
-                <input type="number" value="25" min="1" max="200"
-                  style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:6px;
-                         padding:8px 12px;color:var(--white);font-family:var(--font-head);font-size:0.9rem;width:100%;outline:none;">
-              </div>
-            </div>
-          </div>
+        
         </div>
 
         <div class="admin-panel" style="border-color:rgba(255,82,82,0.2);">
@@ -1790,14 +1759,14 @@ $sportEmojis = [
           </div>
           <div class="settings-group">
             <div class="settings-row">
-              <div><div class="settings-key">Clear Activity Logs</div><div class="settings-hint">Permanently delete all logs</div></div>
-              <button class="btn btn-outline" style="font-size:0.72rem;padding:7px 16px;border-color:rgba(255,82,82,0.4);color:#ff5252;"
-                      onclick="if(confirm('Clear all activity logs? This cannot be undone.')){}">Clear Logs</button>
+              <div><div class="settings-key">Clear Activity Logs <span style="color:#ff9800;font-size:0.75rem;font-weight:600;margin-left:6px;">(to be continued)</span></div><div class="settings-hint">Permanently delete all logs</div></div>
+              <button class="btn btn-outline" style="font-size:0.72rem;padding:7px 16px;border-color:rgba(255,82,82,0.4);color:#ff5252;opacity:0.5;cursor:not-allowed;" disabled
+                      onclick="if(confirm('Clear all activity logs? This cannot be undone.'))">Clear Logs</button>
             </div>
             <div class="settings-row" style="border-bottom:none;padding-bottom:0;">
-              <div><div class="settings-key">Reset All Scores</div><div class="settings-hint">Wipe all game scores from the system</div></div>
-              <button class="btn btn-outline" style="font-size:0.72rem;padding:7px 16px;border-color:rgba(255,82,82,0.4);color:#ff5252;"
-                      onclick="if(confirm('Reset all scores? This cannot be undone.')){}">Reset</button>
+              <div><div class="settings-key">Reset All Scores <span style="color:#ff9800;font-size:0.75rem;font-weight:600;margin-left:6px;">(to be continued)</span></div><div class="settings-hint">Wipe all game scores from the system</div></div>
+              <button class="btn btn-outline" style="font-size:0.72rem;padding:7px 16px;border-color:rgba(255,82,82,0.4);color:#ff5252;opacity:0.5;cursor:not-allowed;" disabled
+                      onclick="if(confirm('Reset all scores? This cannot be undone.'))">Reset</button>
             </div>
           </div>
         </div>
