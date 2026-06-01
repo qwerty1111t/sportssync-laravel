@@ -7,7 +7,7 @@ COPY . .
 RUN npm install --prefix public/ws-server --legacy-peer-deps
 RUN npm run build
 
-# Build the PHP application image
+# Build the PHP application image with explicit Apache MPM configuration
 FROM php:8.2-apache
 
 RUN apt-get update && apt-get install -y \
@@ -23,18 +23,16 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
-  && docker-php-ext-install pdo_mysql mbstring zip intl sockets
+  && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
+  && rm -rf /var/lib/apt/lists/*
 
-# Disable all MPM modules first
-RUN a2dismod mpm_event mpm_worker mpm_prefork 2>/dev/null || true
+# Disable mpm_event and enable mpm_prefork
+RUN a2dismod mpm_event mpm_worker 2>/dev/null || true \
+  && a2enmod mpm_prefork rewrite \
+  && rm -f /etc/apache2/mods-enabled/mpm_event* /etc/apache2/mods-enabled/mpm_worker*
 
-# Force remove all MPM symlinks from mods-enabled
-RUN find /etc/apache2/mods-enabled -name "mpm_*" -delete
-
-# Enable only mpm_prefork and rewrite
-RUN a2enmod mpm_prefork rewrite
-
-RUN rm -rf /var/lib/apt/lists/*
+# Restart Apache to apply changes
+RUN service apache2 restart || true
 
 WORKDIR /var/www/html
 COPY --from=asset-builder /app /var/www/html
