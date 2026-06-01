@@ -23,6 +23,31 @@ fi
 
 cd /var/www/html
 
+if [ -n "$DB_HOST" ]; then
+  echo "[Init] Testing MySQL connection to $DB_HOST:$DB_PORT..."
+  php -r "
+    try {
+      \$pdo = new PDO('mysql:host='.\$_ENV['DB_HOST'].',port='.\$_ENV['DB_PORT'].';dbname='.\$_ENV['DB_DATABASE'], \$_ENV['DB_USERNAME'], \$_ENV['DB_PASSWORD']);
+      echo '[Init] ✓ MySQL connection successful' . PHP_EOL;
+    } catch (Exception \$e) {
+      echo '[Init] ✗ MySQL connection failed: ' . \$e->getMessage() . PHP_EOL;
+      exit(1);
+    }
+  " || exit 1
+fi
+
+# Run migrations
+echo "[Init] Running database migrations..."
+php artisan migrate --force || true
+
+# Seed superadmin if needed
+echo "[Init] Seeding superadmin user..."
+php artisan db:seed --class=SuperadminSeeder || true
+
+# Clear caches
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 # Ensure php-fpm socket directory exists with proper permissions
 mkdir -p /var/run/php
 chown -R www-data:www-data /var/run/php || true

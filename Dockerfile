@@ -1,5 +1,5 @@
 # Build the frontend assets with Node
-FROM node:20-bullseye-slim AS asset-builder
+FROM node:20-alpine AS asset-builder
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install --legacy-peer-deps
@@ -7,51 +7,40 @@ COPY . .
 RUN npm install --prefix public/ws-server --legacy-peer-deps
 RUN npm run build
 
-# Build the PHP application image with Nginx + Supervisor
-FROM php:8.2-fpm-bullseye
+# Build the PHP application image
+FROM php:8.2-apache
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  ca-certificates \
-  curl \
-  gnupg \
-  git \
-  nginx \
-  supervisor \
-  zip \
-  unzip \
-  libzip-dev \
-  libonig-dev \
-  libpng-dev \
-  libicu-dev \
-  libxml2-dev \
-  libcurl4-openssl-dev \
-  libsqlite3-dev \
-  pkg-config \
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    zip \
+    unzip \
+    libzip-dev \
+    libonig-dev \
+    libpng-dev \
+    libicu-dev \
+    libxml2-dev \
+    libcurl4-openssl-dev \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-  && apt-get install -y --no-install-recommends nodejs \
-  && docker-php-ext-install pdo_mysql pdo_sqlite mbstring zip intl sockets \
-  && sed -i 's@^listen = .*@listen = 127.0.0.1:9000@' /usr/local/etc/php-fpm.d/www.conf \
-  && sed -i 's@^user = .*@user = www-data@' /usr/local/etc/php-fpm.d/www.conf \
-  && sed -i 's@^group = .*@group = www-data@' /usr/local/etc/php-fpm.d/www.conf \
-  && grep "^listen\|^user\|^group" /usr/local/etc/php-fpm.d/www.conf \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  && apt-get install -y nodejs \
+  && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
+  && a2dismod mpm_event mpm_worker \
+  && rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf \
+  && a2enmod mpm_prefork rewrite \
+  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 COPY --from=asset-builder /app /var/www/html
-COPY nginx.conf /etc/nginx/nginx.conf.template
-COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-COPY scripts/start-nginx.sh /usr/local/bin/start-nginx.sh
 
-RUN chmod +x /usr/local/bin/entrypoint.sh \
-  && chmod +x /usr/local/bin/start-nginx.sh \
-  && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
-  && composer install --no-dev --optimize-autoloader --no-interaction --verbose \
-  && [ -f vendor/autoload.php ] || (echo "ERROR: Composer install failed - vendor/autoload.php not found"; exit 1) \
-  && rm -rf /root/.composer/cache \
-  && mkdir -p /var/run/php \
-  && chown -R www-data:www-data /var/run/php /var/www/html/storage /var/www/html/bootstrap/cache \
-  && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer \
+  && composer install --no-dev --optimize-autoloader --no-interaction \
+  && rm -rf /root/.composer/cache
 
-EXPOSE 8000 3000
-CMD ["/usr/local/bin/entrypoint.sh"]
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+
+ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
+    && sed -ri 's!<Directory /var/www/html>!<Directory /var/www/html/public>!g' /etc/apache2/apache2.conf
+
+EXPOSE 80 3000
+CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & exec apache2-foreground"]

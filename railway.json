@@ -5,8 +5,7 @@
   "services": [
     {
       "name": "web",
-      "startCommand": "/usr/local/bin/entrypoint.sh",
-      "ports": [8000, 3000]
+      "ports": [80, 3000]
     }
   ]
 }
