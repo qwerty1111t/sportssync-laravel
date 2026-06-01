@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     libcurl4-openssl-dev \
     nginx \
+    supervisor \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
@@ -30,7 +31,11 @@ RUN apt-get update && apt-get install -y \
 # Configure PHP-FPM to run as www-data
 RUN sed -i 's/user = .*/user = www-data/' /usr/local/etc/php-fpm.d/www.conf \
   && sed -i 's/group = .*/group = www-data/' /usr/local/etc/php-fpm.d/www.conf \
-  && sed -i 's/listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf
+  && sed -i 's/listen = .*/listen = 127.0.0.1:9000/' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's/;pm.max_children = .*/pm.max_children = 20/' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's/;pm.start_servers = .*/pm.start_servers = 5/' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's/;pm.min_spare_servers = .*/pm.min_spare_servers = 2/' /usr/local/etc/php-fpm.d/www.conf \
+  && sed -i 's/;pm.max_spare_servers = .*/pm.max_spare_servers = 10/' /usr/local/etc/php-fpm.d/www.conf
 
 WORKDIR /var/www/html
 COPY --from=asset-builder /app /var/www/html
