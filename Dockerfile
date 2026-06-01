@@ -23,10 +23,18 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
-  && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
-  && rm -f /etc/apache2/mods-enabled/mpm_*.conf /etc/apache2/mods-enabled/mpm_*.load \
-  && a2enmod mpm_prefork rewrite \
-  && rm -rf /var/lib/apt/lists/*
+  && docker-php-ext-install pdo_mysql mbstring zip intl sockets
+
+# Disable all MPM modules first
+RUN a2dismod mpm_event mpm_worker mpm_prefork 2>/dev/null || true
+
+# Force remove all MPM symlinks from mods-enabled
+RUN find /etc/apache2/mods-enabled -name "mpm_*" -delete
+
+# Enable only mpm_prefork and rewrite
+RUN a2enmod mpm_prefork rewrite
+
+RUN rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
 COPY --from=asset-builder /app /var/www/html
@@ -42,4 +50,4 @@ RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!g' /
     && sed -ri 's!<Directory /var/www/html>!<Directory /var/www/html/public>!g' /etc/apache2/apache2.conf
 
 EXPOSE 80 3000
-CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & echo '--- MODS-ENABLED ---' >&2; ls -la /etc/apache2/mods-enabled >&2 || true; echo '--- APACHE MODULES ---' >&2; apache2ctl -M >&2 || true; exec apache2-foreground"]
+CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & exec apache2-foreground"]
