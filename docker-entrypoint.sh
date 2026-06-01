@@ -7,15 +7,12 @@ echo "Starting PHP-FPM and Nginx..."
 cd /var/www/html
 
 # Map Railway's MYSQL_* variables to Laravel's DB_* variables FIRST (before creating .env)
-# Use INTERNAL Railway domain (mysql.railway.internal) not the public proxy!
+# Use the actual Railway-injected variables, NOT hardcoded internal domain
 if [ ! -z "$MYSQLHOST" ]; then
     echo "Mapping Railway MySQL variables to Laravel DB_* format..."
     export DB_CONNECTION=mysql
-    
-    # Use internal domain (mysql.railway.internal:3306) NOT viaduct proxy
-    # This is faster and more reliable within Railway's network
-    export DB_HOST=mysql.railway.internal
-    export DB_PORT=3306
+    export DB_HOST=${MYSQLHOST}
+    export DB_PORT=${MYSQLPORT:-3306}
     export DB_DATABASE=${MYSQL_DATABASE}
     export DB_USERNAME=${MYSQLUSER}
     export DB_PASSWORD=${MYSQLPASSWORD}
@@ -25,37 +22,75 @@ fi
 
 # Create .env file from environment variables (don't rely on .env.example in Docker)
 if [ ! -f .env ]; then
-    echo "Creating .env file from environment variables..."
+    echo "Creating complete .env file from environment variables..."
     cat > .env << ENVEOF
 APP_NAME=SportSync
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://sportssync-laravel-production.up.railway.app
+APP_KEY=${APP_KEY}
 
-DB_CONNECTION=${DB_CONNECTION}
+DB_CONNECTION=mysql
 DB_HOST=${DB_HOST}
 DB_PORT=${DB_PORT}
 DB_DATABASE=${DB_DATABASE}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 
-APP_KEY=${APP_KEY}
-
 SESSION_DRIVER=cookie
 SESSION_SECURE_COOKIES=true
+SESSION_DOMAIN=sportssync-laravel-production.up.railway.app
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+
+BASKETBALL_WS_URL=sportssync-laravel-production.up.railway.app
+WS_ALLOWED_ORIGINS=https://sportssync-laravel-production.up.railway.app
+WS_PORT=3000
+
+PORT=8000
+
 LOG_CHANNEL=stack
-CACHE_STORE=database
-QUEUE_CONNECTION=database
+LOG_STACK=single
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+MAIL_MAILER=log
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=rellevejoanner@gmail.com
+MAIL_PASSWORD=woxjutnovhnkajbd
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=rellevejoanner@gmail.com
+MAIL_FROM_NAME=Sportssync
+
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+APP_MAINTENANCE_DRIVER=file
+BCRYPT_ROUNDS=12
 
 BROADCAST_CONNECTION=log
 FILESYSTEM_DISK=local
+QUEUE_CONNECTION=database
+CACHE_STORE=database
 
-MAIL_MAILER=log
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+VITE_APP_NAME=SportSync
+
+SUPERADMIN_USERNAME=sportssyn@admin
+SUPERADMIN_EMAIL=sportssyncsuper@gmail.com
+SUPERADMIN_PASSWORD=BVBTDarts_super@123
+SUPERADMIN_UPDATE_PASSWORD=false
 ENVEOF
-    echo "Created .env file with database credentials:"
-    echo "  DB_HOST=${DB_HOST}"
-    echo "  DB_DATABASE=${DB_DATABASE}"
-    echo "  DB_USERNAME=${DB_USERNAME}"
+    echo "Created complete .env file with all SportSync configuration"
+    echo "MySQL connection: root@mysql.railway.internal:3306/railway"
 fi
 
 # Set production environment defaults (only if not already set)
@@ -116,6 +151,8 @@ stdout_logfile=/var/log/supervisor/php-fpm.out.log
 command=bash -c "cd /var/www/html/public/ws-server && npm start"
 autostart=true
 autorestart=true
+startsecs=10
+startretries=5
 stderr_logfile=/var/log/supervisor/nodejs.err.log
 stdout_logfile=/var/log/supervisor/nodejs.out.log
 
