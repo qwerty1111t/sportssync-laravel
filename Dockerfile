@@ -24,7 +24,8 @@ RUN apt-get update && apt-get install -y \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
-  && a2enmod rewrite \
+  && rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf || true \
+  && a2enmod mpm_prefork rewrite || true \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
@@ -41,4 +42,4 @@ RUN sed -ri 's!DocumentRoot /var/www/html!DocumentRoot /var/www/html/public!g' /
     && sed -ri 's!<Directory /var/www/html>!<Directory /var/www/html/public>!g' /etc/apache2/apache2.conf
 
 EXPOSE 80 3000
-CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & exec apache2-foreground"]
+CMD ["bash", "-lc", "cd /var/www/html/public/ws-server && npm start & rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf || true; exec apache2-foreground"]
