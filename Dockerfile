@@ -24,7 +24,7 @@ RUN apt-get update && apt-get install -y \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
   && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
-  && a2enmod rewrite \
+  && a2enmod mpm_prefork rewrite || true \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
