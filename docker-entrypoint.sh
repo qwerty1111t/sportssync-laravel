@@ -3,6 +3,26 @@
 echo "Starting Container"
 echo "Starting PHP-FPM and Nginx..."
 
+# Initialize Laravel before starting services
+cd /var/www/html
+
+# Create .env from .env.example if it doesn't exist (APP_KEY will be read from Railway env vars)
+if [ ! -f .env ]; then
+    echo "Creating .env file from .env.example..."
+    cp .env.example .env
+fi
+
+# Run migrations and clear cache
+echo "Running Laravel migrations..."
+php artisan migrate --force 2>/dev/null || true
+php artisan config:clear
+php artisan cache:clear
+php artisan view:clear
+
+# Set proper permissions
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+
 # Create supervisor config
 cat > /etc/supervisor/conf.d/services.conf << 'EOF'
 [supervisord]
