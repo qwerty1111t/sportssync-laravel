@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force HTTPS in production (required for Railway and CSP compliance)
+        if (app()->environment('production')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         // Register alias for role middleware so routes can reference `ensure.role:admin`
         Route::aliasMiddleware('ensure.role', \App\Http\Middleware\EnsureRole::class);
         // Register alias for legacy session injection middleware used by proxied legacy routes

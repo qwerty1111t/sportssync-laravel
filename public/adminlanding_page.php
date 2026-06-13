@@ -64,8 +64,14 @@ function logActivity(PDO $pdo, ?int $userId, string $username, string $action): 
 
 // ── WS EMIT HELPER (notify public/ws-server) ─────────────────
 function ws_emit(array $obj): void {
-  // Default relay — can be overridden by environment variable WS_EMIT_URL
-  $emitUrl = getenv('WS_EMIT_URL') ?: 'http://127.0.0.1:3000/emit';
+  // Get WebSocket URL from environment, with dynamic scheme detection for production
+  $wsHost = getenv('WS_HOST') ?: 'localhost:3000';
+  $wsScheme = getenv('WS_SCHEME') ?: ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] === '443' ? 'wss' : 'ws');
+  
+  // For HTTP emit (server-to-server communication), use HTTP or HTTPS based on request
+  $emitScheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] === '443' ? 'https' : 'http';
+  $emitUrl = getenv('WS_EMIT_URL') ?: "{$emitScheme}://{$wsHost}/emit";
+  
   $token   = getenv('WS_TOKEN') ?: null;
   $payload = json_encode($obj);
   $headers = "Content-Type: application/json\r\n";

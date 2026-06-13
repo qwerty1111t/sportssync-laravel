@@ -23,11 +23,19 @@ fi
 # Create .env file from environment variables (don't rely on .env.example in Docker)
 if [ ! -f .env ]; then
     echo "Creating complete .env file from environment variables..."
+    
+    # Determine APP_URL dynamically based on RAILWAY_PUBLIC_DOMAIN (set by Railway)
+    # Fall back to localhost for local development
+    APP_URL="https://${RAILWAY_PUBLIC_DOMAIN:-localhost:8000}"
+    if [ -z "$RAILWAY_PUBLIC_DOMAIN" ]; then
+        APP_URL="http://localhost"
+    fi
+    
     cat > .env << ENVEOF
 APP_NAME=SportSync
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://sportssync-laravel-production.up.railway.app
+APP_URL=${APP_URL}
 APP_KEY=${APP_KEY}
 
 DB_CONNECTION=mysql
@@ -39,14 +47,16 @@ DB_PASSWORD=${DB_PASSWORD}
 
 SESSION_DRIVER=cookie
 SESSION_SECURE_COOKIES=true
-SESSION_DOMAIN=sportssync-laravel-production.up.railway.app
+SESSION_DOMAIN=${RAILWAY_PUBLIC_DOMAIN:-.}
 SESSION_LIFETIME=120
 SESSION_ENCRYPT=false
 SESSION_PATH=/
 
-BASKETBALL_WS_URL=sportssync-laravel-production.up.railway.app
-WS_ALLOWED_ORIGINS=https://sportssync-laravel-production.up.railway.app
+WS_HOST=${RAILWAY_PUBLIC_DOMAIN:-127.0.0.1:3000}
+WS_SCHEME=${RAILWAY_PUBLIC_DOMAIN:+wss}${RAILWAY_PUBLIC_DOMAIN:+:ws}
+WS_ALLOWED_ORIGINS=${APP_URL}
 WS_PORT=3000
+WS_EMIT_URL=${APP_URL}/ws/emit
 
 PORT=8000
 
@@ -89,8 +99,8 @@ SUPERADMIN_EMAIL=sportssyncsuper@gmail.com
 SUPERADMIN_PASSWORD=BVBTDarts_super@123
 SUPERADMIN_UPDATE_PASSWORD=false
 ENVEOF
-    echo "Created complete .env file with all SportSync configuration"
-    echo "MySQL connection: root@mysql.railway.internal:3306/railway"
+    echo "Created complete .env file with dynamic APP_URL: ${APP_URL}"
+    echo "MySQL connection: ${DB_USERNAME}@${DB_HOST}:${DB_PORT}/${DB_DATABASE}"
 fi
 
 # Set production environment defaults (only if not already set)
