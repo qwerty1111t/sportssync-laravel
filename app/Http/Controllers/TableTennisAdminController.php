@@ -31,9 +31,10 @@ class TableTennisAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Rewrite asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
+        // Rewrite ALL asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
         $html = str_replace('tabletennis_admin.css', '/tabletennis-admin/tabletennis_admin.css', $html);
         $html = str_replace('tabletennis_admin.js', '/tabletennis-admin/tabletennis_admin.js', $html);
+        $html = str_replace('tabletennis_viewer.js', '/tabletennis-admin/tabletennis_viewer.js', $html);
         $this->injectLegacyBasePath('tabletennis-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.

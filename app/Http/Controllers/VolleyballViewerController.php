@@ -25,9 +25,9 @@ class VolleyballViewerController extends Controller
             return response('Database connection failed', 500);
         }
         ob_start(); include $legacyPath; $html = ob_get_clean();
-        $html = str_replace('volleyball_viewer.css', '/Volleyball Admin UI/volleyball_viewer.css', $html);
-        $html = str_replace('volleyball_viewer.js', '/Volleyball Admin UI/volleyball_viewer.js', $html);
-        $this->injectLegacyBasePath('Volleyball Admin UI', $html);
+        $html = str_replace('volleyball_viewer.css', '/volleyball-admin/volleyball_viewer.css', $html);
+        $html = str_replace('volleyball_viewer.js', '/volleyball-admin/volleyball_viewer.js', $html);
+        $this->injectLegacyBasePath('volleyball-admin', $html);
         return view('volleyball.viewer', ['legacy_html' => $html]);
     }
 }

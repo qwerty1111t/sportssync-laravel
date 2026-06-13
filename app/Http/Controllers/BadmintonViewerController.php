@@ -26,10 +26,10 @@ class BadmintonViewerController extends Controller
         include $legacyPath; // outputs the viewer HTML
         $html = ob_get_clean();
 
-        // Fix relative asset paths
-        $html = str_replace('badminton_viewer.css', '/Badminton Admin UI/badminton_viewer.css', $html);
-        $html = str_replace('badminton_viewer.js', '/Badminton Admin UI/badminton_viewer.js', $html);
-        $this->injectLegacyBasePath('Badminton Admin UI', $html);
+        // Fix relative asset paths to use new hyphenated routes
+        $html = str_replace('badminton_viewer.css', '/badminton-admin/badminton_viewer.css', $html);
+        $html = str_replace('badminton_viewer.js', '/badminton-admin/badminton_viewer.js', $html);
+        $this->injectLegacyBasePath('badminton-admin', $html);
 
         return view('badminton.viewer', ['legacy_html' => $html]);
     }

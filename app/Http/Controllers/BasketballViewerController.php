@@ -25,9 +25,9 @@ class BasketballViewerController extends Controller
             return response('Database connection failed', 500);
         }
         ob_start(); include $legacyPath; $html = ob_get_clean();
-        $html = str_replace('basketball_viewer.css', '/Basketball Admin UI/basketball_viewer.css', $html);
-        $html = str_replace('basketball_viewer.js', '/Basketball Admin UI/basketball_viewer.js', $html);
-        $this->injectLegacyBasePath('Basketball Admin UI', $html);
+        $html = str_replace('basketball_viewer.css', '/basketball-admin/basketball_viewer.css', $html);
+        $html = str_replace('basketball_viewer.js', '/basketball-admin/basketball_viewer.js', $html);
+        $this->injectLegacyBasePath('basketball-admin', $html);
         return view('basketball.viewer', ['legacy_html' => $html]);
     }
 }

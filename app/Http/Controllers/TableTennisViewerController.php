@@ -20,9 +20,9 @@ class TableTennisViewerController extends Controller
         }
         $mysqli->set_charset($cfg['charset'] ?? 'utf8mb4');
         ob_start(); include $legacyPath; $html = ob_get_clean();
-        $html = str_replace('tabletennis_viewer.css', '/TABLE TENNIS ADMIN UI/tabletennis_viewer.css', $html);
-        $html = str_replace('tabletennis_viewer.js', '/TABLE TENNIS ADMIN UI/tabletennis_viewer.js', $html);
-        $this->injectLegacyBasePath('TABLE TENNIS ADMIN UI', $html);
+        $html = str_replace('tabletennis_viewer.css', '/tabletennis-admin/tabletennis_viewer.css', $html);
+        $html = str_replace('tabletennis_viewer.js', '/tabletennis-admin/tabletennis_viewer.js', $html);
+        $this->injectLegacyBasePath('tabletennis-admin', $html);
         return view('tabletennis.viewer', ['legacy_html' => $html]);
     }
 }
