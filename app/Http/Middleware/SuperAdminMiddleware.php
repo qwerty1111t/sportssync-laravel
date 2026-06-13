@@ -47,11 +47,31 @@ class SuperAdminMiddleware
         }
 
         // 3) Legacy PHP session / lightweight cookie fallback (SS_ROLE)
+        // First check for session user_id to ensure user is authenticated via session
         if (!$role) {
-            if (session_status() === PHP_SESSION_NONE) @session_start();
-            if (!empty($_SESSION['role'])) {
-                $role = $_SESSION['role'];
-            } elseif (!empty($_COOKIE['SS_ROLE'])) {
+            // Check if user is authenticated via session
+            if (!empty($_SESSION['user_id'])) {
+                // User has a session user_id - get role from session or database
+                if (!empty($_SESSION['user_role'])) {
+                    $role = $_SESSION['user_role'];
+                } elseif (!empty($_SESSION['SS_ROLE'])) {
+                    $role = $_SESSION['SS_ROLE'];
+                } else {
+                    // Try to fetch from database
+                    try {
+                        $userId = (int)$_SESSION['user_id'];
+                        $dbRole = DB::table('users')->where('id', $userId)->value('role');
+                        if ($dbRole) {
+                            $role = $dbRole;
+                        }
+                    } catch (\Throwable $_) {
+                        // Database unavailable
+                    }
+                }
+            }
+            
+            // Fallback to cookies if no session user
+            if (!$role && !empty($_COOKIE['SS_ROLE'])) {
                 $role = urldecode($_COOKIE['SS_ROLE']);
             }
         }

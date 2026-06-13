@@ -43,6 +43,13 @@ class AuthenticatedSessionController extends Controller
         // Regenerate session AFTER role is confirmed — prevents fixation.
         $request->session()->regenerate();
 
+        // Store user info in session for both Laravel and legacy PHP access
+        $request->session()->put('user_id', $user->id);
+        $request->session()->put('user_role', $user->role ?? 'viewer');
+        $request->session()->put('username', $user->username ?? 'admin');
+        $request->session()->put('SS_ROLE', $user->role ?? 'viewer'); // Legacy compat
+        $request->session()->put('SS_USER_ID', (string) intval($user->id)); // Legacy compat
+
         // Set legacy compatibility cookies for /public legacy PHP files.
         try {
             $minutes = 60 * 8;

@@ -122,13 +122,24 @@ Route::get('/adminlanding_page.php', function (Request $request) {
     }
 
     if (! defined('LARAVEL_WRAPPER')) define('LARAVEL_WRAPPER', true);
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
     
     if (Auth::check()) {
+        $user = Auth::user();
+        // Set Laravel session variables (accessible via session() helper)
+        $request->session()->put('user_id', Auth::id());
+        $request->session()->put('user_role', strtolower((string)($user->role ?? 'viewer')));
+        $request->session()->put('role', strtolower((string)($user->role ?? 'viewer')));
+        $request->session()->put('username', $user->username ?? 'admin');
+        $request->session()->put('SS_ROLE', strtolower((string)($user->role ?? 'viewer'))); // Legacy compat
+        $request->session()->put('SS_USER_ID', (string)Auth::id()); // Legacy compat
+        
+        // Also populate $_SESSION for legacy PHP compatibility
         $_SESSION['user_id'] = Auth::id();
-        $_SESSION['role'] = strtolower((string)(Auth::user()->role ?? ''));
+        $_SESSION['user_role'] = strtolower((string)($user->role ?? 'viewer'));
+        $_SESSION['role'] = strtolower((string)($user->role ?? 'viewer'));
+        $_SESSION['username'] = $user->username ?? 'admin';
+        $_SESSION['SS_ROLE'] = strtolower((string)($user->role ?? 'viewer'));
+        $_SESSION['SS_USER_ID'] = (string)Auth::id();
     }
     
     chdir(public_path());
