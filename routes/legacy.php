@@ -53,24 +53,3 @@ Route::middleware(['auth', 'legacy.session'])->group(function () {
     // Admin landing page (legacy) proxied for superadmins
     // NOTE: Moved to web.php with CSRF token support - see legacy.adminlanding route in web.php
 });
-
-// Static file proxy routes - NO authentication required for CSS, JS, images, JSON, etc.
-// These must be defined AFTER the auth group to avoid inheriting middleware
-Route::any('/basketball-admin/{path}', [LegacyProxyController::class, 'handle'])
-    ->defaults('sport', 'basketball-admin')
-    ->where('path', '.*');
-Route::any('/volleyball-admin/{path}', [LegacyProxyController::class, 'handle'])
-    ->defaults('sport', 'volleyball-admin')
-    ->where('path', '.*');
-Route::any('/badminton-admin/{path}', [LegacyProxyController::class, 'handle'])
-    ->defaults('sport', 'badminton-admin')
-    ->where('path', '.*');
-Route::any('/tabletennis-admin/{path}', [LegacyProxyController::class, 'handle'])
-    ->defaults('sport', 'tabletennis-admin')
-    ->where('path', '.*');
-Route::any('/darts-admin/{path}', [LegacyProxyController::class, 'handle'])
-    ->defaults('sport', 'darts-admin')
-    ->where('path', '.*');
-Route::any('/analytics/{path}', [LegacyProxyController::class, 'handle'])
-    ->defaults('sport', 'analytics')
-    ->where('path', '.*');
