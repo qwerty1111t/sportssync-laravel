@@ -133,22 +133,6 @@
 </head>
 <body>
   {!! $legacy_html !!}
-  <!-- Load DARTS admin JavaScript via proxy route -->
-  <script>
-    console.log('[DARTS BLADE] Initializing DARTS admin view');
-    console.log('[DARTS BLADE] LEGACY_BASE_PATH:', window.LEGACY_BASE_PATH);
-  </script>
-  <!-- Use proxy route path /darts-admin/darst_admin.js instead of asset() to avoid space encoding issues -->
-  <script src="/darts-admin/darst_admin.js" defer></script>
-  <script>
-    // Ensure base path is available before scripts execute
-    window.LEGACY_BASE_PATH = window.LEGACY_BASE_PATH || '/darts-admin/';
-    console.log('[DARTS BLADE] Base path set to:', window.LEGACY_BASE_PATH);
-    // Debugging: Log when main script loads
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('[DARTS BLADE] DOM Content Loaded');
-      console.log('[DARTS BLADE] darst_admin script loaded:', typeof handleThrow !== 'undefined');
-    });
-  </script>
+  <script src="{{ asset('DARTS ADMIN UI/darst_admin.js') }}"></script>
 </body>
 </html>
