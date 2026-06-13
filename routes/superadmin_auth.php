@@ -1,11 +1,28 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 
 // Superadmin authentication routes (separate from normal auth)
 Route::prefix('superadmin')->name('superadmin.')->group(function () {
-    Route::middleware(['guest', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
-        Route::get('login', [\App\Http\Controllers\Superadmin\Auth\AuthenticatedSessionController::class, 'create'])->name('login');
+    // Superadmin login - allow access if already authenticated (as superadmin)
+    Route::middleware([\App\Http\Middleware\PreventBackHistory::class])->group(function () {
+        Route::get('login', function () {
+            // If already authenticated as superadmin, redirect to dashboard
+            if (Auth::check()) {
+                $user = Auth::user();
+                if ($user && strtolower((string)($user->role ?? '')) === 'superadmin') {
+                    \Illuminate\Support\Facades\Log::info('[SuperadminLogin] Already authenticated as superadmin, redirecting to dashboard');
+                    return redirect('/superadmin/dashboard');
+                }
+                // If authenticated but not superadmin, logout and show login page
+                Auth::logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+            }
+            return view('superadmin.auth.login');
+        })->name('login');
+        
         Route::post('login', [\App\Http\Controllers\Superadmin\Auth\AuthenticatedSessionController::class, 'store']);
 
         Route::get('forgot-password', [\App\Http\Controllers\Superadmin\Auth\PasswordResetLinkController::class, 'create'])->name('password.request');
