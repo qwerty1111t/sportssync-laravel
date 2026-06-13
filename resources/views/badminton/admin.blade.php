@@ -13,8 +13,3 @@
 <script src="{{ asset('Badminton Admin UI/badminton_admin.js') }}"></script>
 </body>
 </html>
-<body>
-    {!! $legacy_html !!}
-    <script src="/badminton-admin/badminton_admin.js"></script>
-</body>
-</html>

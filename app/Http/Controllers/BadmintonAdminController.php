@@ -32,9 +32,6 @@ class BadmintonAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        ob_start();
-        include $legacyPath;
-        $html = ob_get_clean();
         // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
         $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
         $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening

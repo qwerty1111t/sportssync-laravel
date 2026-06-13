@@ -31,10 +31,6 @@ class TableTennisAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
-        ob_start();
-        include $legacyPath;
-        $html = ob_get_clean();
         // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
         $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
         $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening
