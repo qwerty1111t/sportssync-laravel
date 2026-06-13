@@ -1,27 +1,4 @@
-# Deny direct access to PHP files except index.php (legacy hardening)
-<IfModule mod_authz_core.c>
-  <FilesMatch "\.php$">
-    Require all denied
-  </FilesMatch>
-  <Files "index.php">
-    Require all granted
-  </Files>
-</IfModule>
-<IfModule !mod_authz_core.c>
-  <FilesMatch "\.php$">
-    Order deny,allow
-    Deny from all
-  </FilesMatch>
-  <Files "index.php">
-    Order allow,deny
-    Allow from all
-  </Files>
-</IfModule>
-
-# Allow static assets to be served
-<FilesMatch "\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot)$">
-  Require all granted
-</FilesMatch>
+# Laravel and legacy admin UIs - allow all requests to be routed
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes
@@ -29,20 +6,20 @@
 
     RewriteEngine On
 
-    # Handle Authorization Header
+    # Redirect to https in production (handled by nginx/Railway in Docker)
+    # RewriteCond %{HTTPS} off
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Handle Authorization header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
-    # Handle X-XSRF-Token Header
-    RewriteCond %{HTTP:x-xsrf-token} .
-    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
-
-    # Redirect Trailing Slashes If Not A Folder...
+    # Redirect trailing slashes if not a folder
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
-    # Send Requests To Front Controller...
+    # Handle front controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
