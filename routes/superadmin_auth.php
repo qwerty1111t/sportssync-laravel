@@ -12,14 +12,26 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
             if (Auth::check()) {
                 $user = Auth::user();
                 if ($user && strtolower((string)($user->role ?? '')) === 'superadmin') {
-                    \Illuminate\Support\Facades\Log::info('[SuperadminLogin] Already authenticated as superadmin, redirecting to dashboard');
+                    \Illuminate\Support\Facades\Log::info('[SuperadminLogin-GET] Already authenticated as superadmin', [
+                        'user_id' => $user->id,
+                        'role' => $user->role,
+                        'redirect_target' => '/superadmin/dashboard',
+                    ]);
                     return redirect('/superadmin/dashboard');
                 }
                 // If authenticated but not superadmin, logout and show login page
+                \Illuminate\Support\Facades\Log::info('[SuperadminLogin-GET] Authenticated but not superadmin, logging out', [
+                    'user_id' => $user->id,
+                    'role' => $user->role,
+                ]);
                 Auth::logout();
                 request()->session()->invalidate();
                 request()->session()->regenerateToken();
             }
+            \Illuminate\Support\Facades\Log::debug('[SuperadminLogin-GET] Showing login form', [
+                'authenticated' => Auth::check(),
+                'path' => request()->path(),
+            ]);
             return view('superadmin.auth.login');
         })->name('login');
         

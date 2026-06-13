@@ -11,24 +11,11 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <script>
-        (function(){
-            var checkUrl = "{{ url('/auth/check') }}";
-            function redirectToDashboard() {
-                try { window.location.replace("{{ route('superadmin.dashboard') }}"); } catch(e) {}
-            }
-            function doCheck() {
-                try {
-                    fetch(checkUrl, { credentials: 'same-origin', cache: 'no-store' })
-                      .then(function(res){ return res.ok ? res.json() : null; })
-                      .then(function(js){ if (js && js.authenticated) redirectToDashboard(); })
-                      .catch(function(){ try { if (document.cookie && /(?:^|;\s*)SS_USER_ID=/.test(document.cookie)) redirectToDashboard(); } catch(e) {} });
-                } catch (e) {
-                    try { if (document.cookie && /(?:^|;\s*)SS_USER_ID=/.test(document.cookie)) redirectToDashboard(); } catch(e) {}
-                }
-            }
-            doCheck();
-            window.addEventListener('pageshow', function(ev){ if (ev && ev.persisted) doCheck(); });
-        })();
+        // NOTE: Server-side GET /superadmin/login handles authenticated user redirects
+        // Disabling client-side JavaScript redirect to avoid race conditions and double-redirects
+        // The route handler will redirect authenticated superadmins to /superadmin/dashboard
+        // before this page is even rendered
+        console.log('[SuperAdmin Login] Page loaded, server has already handled auth redirects');
     </script>
 </head>
 <body>

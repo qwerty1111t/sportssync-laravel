@@ -46,25 +46,13 @@ Route::post('/contact', function (Request $request) {
 Route::get('/dashboard', function (Request $request) {
     $user = Auth::user();
     
-    // Guard: prevent redirect loop by checking if we're already redirecting
-    $sessionRedirectGuard = session('_redirect_guard_dashboard');
-    if ($sessionRedirectGuard) {
-        // We've already tried to redirect once; don't do it again
-        session()->forget('_redirect_guard_dashboard');
-        // Fall through to serve the dashboard
-    } else {
-        // Check if user is superadmin and shouldn't be here
-        if ($user && strtolower((string)($user->role ?? '')) === 'superadmin') {
-            // Superadmins should use /superadmin/dashboard
-            // Only redirect if we're not already redirecting (prevent loops)
-            session()->put('_redirect_guard_dashboard', true);
-            \Illuminate\Support\Facades\Log::info('[Dashboard Route] Superadmin redirected to /superadmin/dashboard', [
-                'user_id' => $user->id,
-                'role' => $user->role,
-                'current_path' => $request->path(),
-            ]);
-            return redirect('/superadmin/dashboard');
-        }
+    // If superadmin, they should use /superadmin/dashboard instead
+    if ($user && strtolower((string)($user->role ?? '')) === 'superadmin') {
+        \Illuminate\Support\Facades\Log::info('[Dashboard Route] Superadmin visiting /dashboard, redirecting to /superadmin/dashboard', [
+            'user_id' => $user->id,
+            'role' => $user->role,
+        ]);
+        return redirect('/superadmin/dashboard');
     }
     
     if ($user) {
