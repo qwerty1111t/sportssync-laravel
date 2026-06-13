@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Auth;
 // Superadmin authentication routes (separate from normal auth)
 Route::prefix('superadmin')->name('superadmin.')->group(function () {
     // Superadmin login - allow access if already authenticated (as superadmin)
-    Route::middleware([\App\Http\Middleware\PreventBackHistory::class])->group(function () {
+    Route::middleware(['legacy.session', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
         Route::get('login', function () {
             // Check if already authenticated as superadmin (check both Laravel Auth AND session/cookie)
             $isAuthenticatedSuperadmin = false;
@@ -76,14 +76,14 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
 
     // Use shared logout (POST) from standard Auth controller, but require superadmin role to call it
     // Use 'superadmin' middleware instead of 'auth' to support session/cookie-based auth
-    Route::middleware(['superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+    Route::middleware(['legacy.session', 'superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
         Route::post('logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy'])->name('logout');
     });
 
     // Superadmin dashboard routes
     // Note: Main /superadmin/dashboard route is defined in routes/web.php
     // These are just convenience redirects for shortcuts
-    Route::middleware(['superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+    Route::middleware(['legacy.session', 'superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
         Route::get('adminlanding', function () {
             // Redirect to the superadmin dashboard
             return redirect('/superadmin/dashboard');
