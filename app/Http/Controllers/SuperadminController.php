@@ -6,14 +6,11 @@ use Illuminate\Support\Facades\Auth;
 
 class SuperadminController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware(['auth', 'ensure.role:superadmin']);
-    }
-
+    // DO NOT apply middleware in constructor - it's already applied in routes/web.php
+    // Applying it here causes duplicate middleware execution and redirect loops
+    
     public function index(Request $request)
     {
-        // GUARD: Prevent redirect loop by checking role before serving
         $user = Auth::user();
         
         // Log entry for debugging
