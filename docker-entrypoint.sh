@@ -122,7 +122,14 @@ echo "  DB_PORT=$DB_PORT"
 echo "  DB_DATABASE=$DB_DATABASE"
 echo "  DB_USERNAME=$DB_USERNAME"
 
+# Verify PHP extensions are loaded
+echo ""
+echo "Checking PHP extensions..."
+php -m | grep -E "mysqli|pdo_mysql" || echo "WARNING: MySQL extensions may not be loaded!"
+echo "Loaded extensions: $(php -m | tr '\n' ' ')"
+
 # Run migrations with detailed output
+echo ""
 echo "Running Laravel migrations..."
 if ! php artisan migrate --force; then
     echo "WARNING: Migrations failed, but continuing startup..."
@@ -132,6 +139,7 @@ fi
 # Clear all caches
 echo "Clearing caches..."
 php artisan config:clear
+php artisan route:clear
 php artisan cache:clear
 php artisan view:clear
 

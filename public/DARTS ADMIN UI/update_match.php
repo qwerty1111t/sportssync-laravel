@@ -10,6 +10,11 @@ header('Access-Control-Allow-Headers: Content-Type, X-CSRF-TOKEN, X-XSRF-TOKEN')
 $user = ['id' => 1, 'username' => 'testuser', 'role' => 'admin'];
 
 if (!isset($conn) || !($conn instanceof mysqli)) {
+  if (!class_exists('mysqli')) {
+    http_response_code(500);
+    echo json_encode(['success'=>false,'message'=>'PHP mysqli extension is not installed']);
+    exit;
+  }
   mysqli_report(MYSQLI_REPORT_OFF);
   $conn = @new mysqli('localhost', 'root', '', 'sportssync');
   if ($conn->connect_errno) {

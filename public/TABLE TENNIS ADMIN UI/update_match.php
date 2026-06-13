@@ -5,8 +5,11 @@ require_once __DIR__ . '/db_config.php';
 require_once __DIR__ . '/../auth.php';
 header('Content-Type: application/json; charset=utf-8');
 
-if (!isset($mysqli) || !($mysqli instanceof mysqli)) {
-  mysqli_report(MYSQLI_REPORT_OFF);
+if (!isset($mysqli) || !($mysqli instanceof mysqli)) {  if (!class_exists('mysqli')) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'PHP mysqli extension is not installed']);
+    exit;
+  }  mysqli_report(MYSQLI_REPORT_OFF);
   $mysqli = @new mysqli('localhost', 'root', '', 'sportssync');
   if ($mysqli->connect_errno) {
     http_response_code(500);

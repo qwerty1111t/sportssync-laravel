@@ -4,6 +4,13 @@ if (defined('LARAVEL_WRAPPER')) {
     return;
 }
 
+// Check if mysqli extension is loaded
+if (!class_exists('mysqli')) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'message' => 'PHP mysqli extension is not installed']);
+    exit;
+}
+
 // db_config.php
 define('DB_HOST', 'localhost');
 define('DB_USER', 'root');

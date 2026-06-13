@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
     supervisor \
   && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
   && apt-get install -y nodejs \
-  && docker-php-ext-install pdo_mysql mbstring zip intl sockets \
+  && docker-php-ext-install mysqli pdo_mysql mbstring zip intl sockets \
   && rm -rf /var/lib/apt/lists/*
 
 # Configure PHP-FPM to run as www-data

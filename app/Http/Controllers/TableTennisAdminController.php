@@ -27,6 +27,12 @@ class TableTennisAdminController extends Controller
             $cfg = config('db_tabletennis');
             Log::info('[TABLE TENNIS] Config loaded', ['host' => $cfg['host'] ?? 'null', 'database' => $cfg['database'] ?? 'null']);
             
+            // Check if mysqli extension is loaded
+            if (!class_exists('mysqli')) {
+                Log::error('[TABLE TENNIS] mysqli extension not loaded');
+                return response('PHP mysqli extension is not installed. Please ensure php8.2-mysql is installed in the container.', 500);
+            }
+            
             $mysqli = @new \mysqli($cfg['host'], $cfg['username'], $cfg['password'], $cfg['database']);
             if ($mysqli->connect_errno) {
                 Log::error('[TABLE TENNIS] DB connect failed', ['errno' => $mysqli->connect_errno, 'error' => $mysqli->connect_error]);
