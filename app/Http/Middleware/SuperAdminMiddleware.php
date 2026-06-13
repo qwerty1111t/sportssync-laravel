@@ -107,33 +107,48 @@ class SuperAdminMiddleware
             $normalized = 'admin';
         }
 
+        // GUARD: Detect redirect loops by checking if we're already in the superadmin namespace
+        // If middleware keeps redirecting, we'll end up in a loop
+        $currentPath = $request->path();
+        $isSuperadminPath = str_starts_with($currentPath, 'superadmin');
+        
         Log::debug('[SuperAdminMiddleware] Final role check', [
             'raw_role' => $role,
             'normalized_role' => $normalized,
             'auth_check' => Auth::check(),
             'user_id' => Auth::id(),
-            'path' => $request->path(),
+            'path' => $currentPath,
+            'is_superadmin_path' => $isSuperadminPath,
         ]);
 
         // Allow only superadmin
         if ($normalized === 'superadmin') {
             // User is authenticated AND has superadmin role - allow
-            Log::info('[SuperAdminMiddleware] Superadmin access granted', ['user_id' => Auth::id(), 'path' => $request->path()]);
+            Log::info('[SuperAdminMiddleware] Superadmin access granted', [
+                'user_id' => Auth::id(),
+                'path' => $currentPath,
+                'normalized_role' => $normalized,
+            ]);
             return $next($request);
         }
 
         // User does not have superadmin role
         if (!Auth::check()) {
             // Not authenticated at all - redirect to login
-            Log::info('[SuperAdminMiddleware] Not authenticated, redirecting to login', ['path' => $request->path()]);
-            return redirect('/superadmin/login');
+            // GUARD: only redirect if we're not already at login
+            if (!str_contains($currentPath, 'login')) {
+                Log::info('[SuperAdminMiddleware] Not authenticated, redirecting to login', ['path' => $currentPath]);
+                return redirect('/superadmin/login');
+            }
+            Log::warning('[SuperAdminMiddleware] Not authenticated but already at login, allowing through', ['path' => $currentPath]);
+            return $next($request);
         }
 
         // Authenticated but not superadmin - deny
         Log::warning('[SuperAdminMiddleware] Authenticated but not superadmin, denying access', [
             'user_id' => Auth::id(),
             'role' => $normalized,
-            'path' => $request->path(),
+            'path' => $currentPath,
         ]);
         abort(403, 'Superadmin role required');
     }

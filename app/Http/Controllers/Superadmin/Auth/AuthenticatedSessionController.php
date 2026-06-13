@@ -64,6 +64,12 @@ class AuthenticatedSessionController extends Controller
 
         // Resolve ?next= — support sport: keys and legacy raw paths.
         $next = trim((string)($request->input('next') ?? $request->query('next') ?? ''));
+        
+        \Illuminate\Support\Facades\Log::info('[SuperadminLoginController] Login successful, processing redirect', [
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'next_param' => $next,
+        ]);
 
         if (str_starts_with($next, 'sport:')) {
             // Superadmin always gets admin-tier pages.
@@ -78,24 +84,33 @@ class AuthenticatedSessionController extends Controller
                 'players'     => 'analytics/players.php',
             ];
             if (isset($sportMap[$sportKey])) {
-                return redirect('/' . $sportMap[$sportKey]);
+                $redirectPath = '/' . $sportMap[$sportKey];
+                \Illuminate\Support\Facades\Log::info('[SuperadminLoginController] Redirecting to sport page', [
+                    'sport' => $sportKey,
+                    'redirect_path' => $redirectPath,
+                ]);
+                return redirect($redirectPath);
             }
         }
 
         if ($next !== '') {
             $n = strtolower($next);
             if (str_contains($n, 'adminlanding')) {
+                \Illuminate\Support\Facades\Log::info('[SuperadminLoginController] Redirecting to superadmin dashboard (adminlanding requested)');
                 return redirect('/superadmin/dashboard');
             }
             if (preg_match('#admin ui|admin\.php|viewer\.php#i', $n)) {
                 $decoded  = urldecode($next);
                 $segments = explode('/', ltrim($decoded, '/'));
                 $encoded  = implode('/', array_map('rawurlencode', $segments));
-                return redirect('/' . $encoded);
+                $redirectPath = '/' . $encoded;
+                \Illuminate\Support\Facades\Log::info('[SuperadminLoginController] Redirecting to requested path', ['redirect_path' => $redirectPath]);
+                return redirect($redirectPath);
             }
         }
 
         // Default for superadmin — land on superadmin dashboard.
+        \Illuminate\Support\Facades\Log::info('[SuperadminLoginController] Redirecting to superadmin dashboard (default)');
         return redirect('/superadmin/dashboard');
     }
 }
