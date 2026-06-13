@@ -11,6 +11,22 @@ class SuperAdminMiddleware
 {
     /**
      * Handle an incoming request.
+     * 
+     * This middleware validates that the user has the 'superadmin' role.
+     * 
+     * It checks role from multiple sources (in priority order):
+     * 1. Laravel Auth::user()->role (if user is authenticated in Laravel Auth system)
+     * 2. Session variables: user_role, SS_ROLE
+     * 3. Database lookup via user_id
+     * 4. Cookies: SS_ROLE
+     * 
+     * This supports both:
+     * - Laravel Auth-based authentication (database-backed users table)
+     * - Session/cookie-based authentication (legacy PHP compatibility)
+     * 
+     * If valid superadmin role is found, allows the request through.
+     * If no role is found, redirects unauthenticated users to /superadmin/login.
+     * If role is found but not superadmin, returns 403 Forbidden.
      */
     public function handle(Request $request, Closure $next)
     {
@@ -125,29 +141,33 @@ class SuperAdminMiddleware
         if ($normalized === 'superadmin') {
             // User is authenticated AND has superadmin role - allow
             Log::info('[SuperAdminMiddleware] Superadmin access granted', [
-                'user_id' => Auth::id(),
+                'user_id' => Auth::id() ?? session('user_id') ?? $_SESSION['user_id'] ?? 'unknown',
                 'path' => $currentPath,
                 'normalized_role' => $normalized,
             ]);
             return $next($request);
         }
 
-        // User does not have superadmin role
-        if (!Auth::check()) {
-            // Not authenticated at all - redirect to login
-            // GUARD: only redirect if we're not already at login
-            if (!str_contains($currentPath, 'login')) {
-                Log::info('[SuperAdminMiddleware] Not authenticated, redirecting to login', ['path' => $currentPath]);
+        // User does not have superadmin role (no role found from any source)
+        if (empty($role)) {
+            // Not authenticated at all (no Auth record, no session user_id, no SS_ROLE cookie)
+            // GUARD: only redirect if we're not already at login path
+            if (!str_contains($currentPath, 'login') && !str_contains($currentPath, 'password')) {
+                Log::info('[SuperAdminMiddleware] No authentication found, redirecting to login', [
+                    'path' => $currentPath,
+                    'reason' => 'no_role_detected',
+                ]);
                 return redirect('/superadmin/login');
             }
-            Log::warning('[SuperAdminMiddleware] Not authenticated but already at login, allowing through', ['path' => $currentPath]);
+            Log::debug('[SuperAdminMiddleware] No authentication but already at auth page, allowing through', ['path' => $currentPath]);
             return $next($request);
         }
 
-        // Authenticated but not superadmin - deny
+        // Authenticated but not superadmin - deny (403)
         Log::warning('[SuperAdminMiddleware] Authenticated but not superadmin, denying access', [
-            'user_id' => Auth::id(),
-            'role' => $normalized,
+            'user_id' => Auth::id() ?? session('user_id') ?? $_SESSION['user_id'] ?? 'unknown',
+            'role_found' => $role,
+            'normalized_role' => $normalized,
             'path' => $currentPath,
         ]);
         abort(403, 'Superadmin role required');

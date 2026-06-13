@@ -13,40 +13,60 @@ class SuperadminController extends Controller
     {
         $user = Auth::user();
         
+        // Get role from multiple sources (Laravel Auth, session, or cookie)
+        $role = null;
+        $userId = null;
+        
+        if ($user) {
+            $role = $user->role;
+            $userId = $user->id;
+        } else {
+            // Try session/cookie if Laravel Auth user is not available
+            $role = session('SS_ROLE') ?? session('user_role') ?? $_SESSION['SS_ROLE'] ?? $_SESSION['user_role'] ?? $_COOKIE['SS_ROLE'] ?? null;
+            $userId = session('user_id') ?? $_SESSION['user_id'] ?? intval($_COOKIE['SS_USER_ID'] ?? 0) ?? null;
+        }
+        
         // Log entry for debugging
         \Illuminate\Support\Facades\Log::info('[SuperadminController] Dashboard access', [
-            'user_id' => $user?->id,
-            'role' => $user?->role,
+            'user_id' => $userId,
+            'role' => $role,
             'ss_role' => session('SS_ROLE'),
             'path' => $request->path(),
             'authenticated' => Auth::check(),
+            'has_laravel_user' => $user ? 'yes' : 'no',
         ]);
         
         // Verify user is actually superadmin (middleware should have done this, but double-check)
-        if (!$user || strtolower((string)($user->role ?? '')) !== 'superadmin') {
+        if (!$role || strtolower((string)$role) !== 'superadmin') {
             \Illuminate\Support\Facades\Log::warning('[SuperadminController] Non-superadmin access attempt', [
-                'user_id' => $user?->id,
-                'role' => $user?->role,
+                'user_id' => $userId,
+                'role' => $role,
                 'authenticated' => Auth::check(),
             ]);
             abort(403, 'Superadmin access required');
         }
         
         // Set session variables for legacy PHP compatibility
-        $request->session()->put('user_id', Auth::id());
-        $request->session()->put('user_role', strtolower((string)($user->role ?? 'viewer')));
-        $request->session()->put('role', strtolower((string)($user->role ?? 'viewer')));
-        $request->session()->put('username', $user->username ?? 'admin');
-        $request->session()->put('SS_ROLE', strtolower((string)($user->role ?? 'viewer'))); // Legacy compat
-        $request->session()->put('SS_USER_ID', (string)Auth::id()); // Legacy compat
+        if ($userId) {
+            $request->session()->put('user_id', $userId);
+            $_SESSION['user_id'] = $userId;
+        }
+        $request->session()->put('user_role', strtolower((string)$role));
+        $request->session()->put('role', strtolower((string)$role));
+        $request->session()->put('SS_ROLE', strtolower((string)$role));
+        $_SESSION['user_role'] = strtolower((string)$role);
+        $_SESSION['role'] = strtolower((string)$role);
+        $_SESSION['SS_ROLE'] = strtolower((string)$role);
         
-        // Also populate $_SESSION for legacy PHP compatibility
-        $_SESSION['user_id'] = Auth::id();
-        $_SESSION['user_role'] = strtolower((string)($user->role ?? 'viewer'));
-        $_SESSION['role'] = strtolower((string)($user->role ?? 'viewer'));
-        $_SESSION['username'] = $user->username ?? 'admin';
-        $_SESSION['SS_ROLE'] = strtolower((string)($user->role ?? 'viewer'));
-        $_SESSION['SS_USER_ID'] = (string)Auth::id();
+        if ($userId) {
+            $request->session()->put('SS_USER_ID', (string)$userId);
+            $_SESSION['SS_USER_ID'] = (string)$userId;
+        }
+        
+        if ($user?->username) {
+            $request->session()->put('username', $user->username);
+            $_SESSION['username'] = $user->username;
+        }
         
         // Serve the legacy admin landing page content
         $legacyFile = public_path('adminlanding_page.php');
