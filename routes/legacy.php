@@ -14,20 +14,22 @@ use Illuminate\Support\Facades\Auth;
 
 // All legacy admin UI access must go through Laravel and require auth + legacy.session
 Route::middleware(['auth', 'legacy.session'])->group(function () {
-    // Top-level UI entry pages (wrapped views)
-    Route::get('/Badminton Admin UI', [BadmintonAdminController::class, 'index'])->name('badminton.admin');
-    Route::get('/Badminton Admin UI/viewer', [BadmintonViewerController::class, 'show'])->name('badminton.viewer');
+    // Admin routes - require both auth + admin role
+    Route::middleware('ensure.role:admin')->group(function () {
+        Route::get('/Badminton Admin UI', [BadmintonAdminController::class, 'index'])->name('badminton.admin');
+        Route::get('/Basketball Admin UI', [BasketballAdminController::class, 'index'])->name('basketball.admin');
+        Route::get('/TABLE TENNIS ADMIN UI', [TableTennisAdminController::class, 'index'])->name('tabletennis.admin');
+        Route::get('/DARTS ADMIN UI', [DartsAdminController::class, 'index'])->name('darts.admin');
+        Route::get('/Volleyball Admin UI', [VolleyballAdminController::class, 'index'])->name('volleyball.admin');
+    });
 
-    Route::get('/Basketball Admin UI', [BasketballAdminController::class, 'index'])->name('basketball.admin');
-    Route::get('/Basketball Admin UI/viewer', [BasketballViewerController::class, 'show'])->name('basketball.viewer');
-
-    Route::get('/TABLE TENNIS ADMIN UI', [TableTennisAdminController::class, 'index'])->name('tabletennis.admin');
-    Route::get('/TABLE TENNIS ADMIN UI/viewer', [TableTennisViewerController::class, 'show'])->name('tabletennis.viewer');
-
-    Route::get('/DARTS ADMIN UI', [DartsAdminController::class, 'index'])->name('darts.admin');
-
-    Route::get('/Volleyball Admin UI', [VolleyballAdminController::class, 'index'])->name('volleyball.admin');
-    Route::get('/Volleyball Admin UI/viewer', [VolleyballViewerController::class, 'show'])->name('volleyball.viewer');
+    // Viewer routes - require auth only (allow both viewer and admin)
+    Route::middleware('ensure.role:viewer')->group(function () {
+        Route::get('/Badminton Admin UI/viewer', [BadmintonViewerController::class, 'show'])->name('badminton.viewer');
+        Route::get('/Basketball Admin UI/viewer', [BasketballViewerController::class, 'show'])->name('basketball.viewer');
+        Route::get('/TABLE TENNIS ADMIN UI/viewer', [TableTennisViewerController::class, 'show'])->name('tabletennis.viewer');
+        Route::get('/Volleyball Admin UI/viewer', [VolleyballViewerController::class, 'show'])->name('volleyball.viewer');
+    });
 
     // Proxy any other legacy files (AJAX endpoints, PHP helpers, etc.) through the controller.
     Route::any('/{sport}/{path?}', [LegacyProxyController::class, 'handle'])

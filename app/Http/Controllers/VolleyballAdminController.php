@@ -9,10 +9,6 @@ class VolleyballAdminController extends Controller
 {
     use LegacyWrapperTrait;
 
-    public function __construct()
-    {
-        $this->middleware(['auth', 'ensure.role:admin']);
-    }
     public function index(Request $request)
     {
         $legacyPath = public_path('Volleyball Admin UI/volleyball_admin.php');

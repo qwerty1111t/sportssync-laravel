@@ -9,10 +9,6 @@ class BadmintonAdminController extends Controller
 {
     use LegacyWrapperTrait;
 
-    public function __construct()
-    {
-        $this->middleware(['auth', 'ensure.role:admin']);
-    }
     public function index(Request $request)
     {
         $legacyPath = public_path('Badminton Admin UI/badminton_admin.php');
