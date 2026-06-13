@@ -11,38 +11,49 @@ class BadmintonAdminController extends Controller
 
     public function index(Request $request)
     {
-        $legacyPath = public_path('Badminton Admin UI/badminton_admin.php');
-        Log::debug('Badminton Admin path check', ['path' => $legacyPath, 'exists' => file_exists($legacyPath), 'base' => public_path('')]);
-        
-        if (!file_exists($legacyPath)) {
-            Log::error('Badminton Admin file not found', ['path' => $legacyPath]);
-            return response('Legacy admin file missing at: ' . $legacyPath, 500);
+        try {
+            $legacyPath = public_path('Badminton Admin UI/badminton_admin.php');
+            Log::info('[BADMINTON] Starting request', ['path' => $legacyPath, 'user' => auth()->id()]);
+            
+            if (!file_exists($legacyPath)) {
+                Log::error('[BADMINTON] File not found', ['path' => $legacyPath]);
+                return response('Legacy admin file missing at: ' . $legacyPath, 500);
+            }
+            
+            if (!defined('LARAVEL_WRAPPER')) {
+                define('LARAVEL_WRAPPER', true);
+            }
+            
+            $cfg = config('db_badminton');
+            Log::info('[BADMINTON] Config loaded', ['host' => $cfg['host'] ?? 'null', 'database' => $cfg['database'] ?? 'null']);
+            
+            $mysqli = @new \mysqli($cfg['host'], $cfg['username'], $cfg['password'], $cfg['database']);
+            if ($mysqli->connect_errno) {
+                Log::error('[BADMINTON] DB connect failed', ['errno' => $mysqli->connect_errno, 'error' => $mysqli->connect_error]);
+                return response('Database connection failed: ' . $mysqli->connect_error, 500);
+            }
+            
+            $mysqli->set_charset($cfg['charset'] ?? 'utf8mb4');
+            
+            ob_start();
+            include $legacyPath;
+            $html = ob_get_clean();
+            Log::info('[BADMINTON] Legacy HTML loaded', ['length' => strlen($html)]);
+            
+            // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
+            $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
+            $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening
+            $html = preg_replace('/<\/html>/i', '', $html); // Remove html closing
+            $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html); // Remove entire head
+            $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
+            $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
+            $this->injectLegacyBasePath('badminton-admin', $html);
+            
+            Log::info('[BADMINTON] Rendering view', ['legacy_html_length' => strlen($html)]);
+            return view('badminton.admin', ['legacy_html' => $html]);
+        } catch (\Throwable $e) {
+            Log::error('[BADMINTON] Exception: ' . $e->getMessage(), ['exception' => $e]);
+            return response('Error: ' . $e->getMessage(), 500);
         }
-
-        if (!defined('LARAVEL_WRAPPER')) {
-            define('LARAVEL_WRAPPER', true);
-        }
-        $cfg = config('db_badminton');
-        $mysqli = @new \mysqli($cfg['host'], $cfg['username'], $cfg['password'], $cfg['database']);
-        if ($mysqli->connect_errno) {
-            Log::error('Badminton DB connect: ' . $mysqli->connect_error);
-            return response('Database connection failed', 500);
-        }
-        $mysqli->set_charset($cfg['charset'] ?? 'utf8mb4');
-        ob_start();
-        include $legacyPath;
-        $html = ob_get_clean();
-        // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
-        $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
-        $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening
-        $html = preg_replace('/<\/html>/i', '', $html); // Remove html closing
-        $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html); // Remove entire head
-        $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
-        $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
-        $this->injectLegacyBasePath('badminton-admin', $html);
-
-        // Legacy session/cookie injection is handled by middleware `legacy.session`.
-
-        return view('badminton.admin', ['legacy_html' => $html]);
     }
 }
