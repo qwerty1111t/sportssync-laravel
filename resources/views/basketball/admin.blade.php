@@ -6,11 +6,9 @@
   <title>Basketball Admin (Legacy)</title>
   <base href="/basketball-admin/">
   <link rel="stylesheet" href="/basketball-admin/style.css">
-  <link rel="stylesheet" href="/basketball-admin/basketball_viewer.css">
   </head>
 <body>
   {!! $legacy_html !!}
   <script src="/basketball-admin/app.js"></script>
-  <script src="/basketball-admin/basketball_viewer.js"></script>
 </body>
 </html>

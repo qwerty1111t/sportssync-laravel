@@ -37,11 +37,9 @@ class BasketballAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Rewrite ALL asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
-        $html = str_replace('style.css', '/basketball-admin/style.css', $html);
-        $html = str_replace('app.js', '/basketball-admin/app.js', $html);
-        $html = str_replace('basketball_viewer.css', '/basketball-admin/basketball_viewer.css', $html);
-        $html = str_replace('basketball_viewer.js', '/basketball-admin/basketball_viewer.js', $html);
+        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
+        $html = str_replace('<link rel="stylesheet" href="style.css">', '', $html);
+        $html = str_replace('<script src="app.js"></script>', '', $html);
         $this->injectLegacyBasePath('basketball-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
