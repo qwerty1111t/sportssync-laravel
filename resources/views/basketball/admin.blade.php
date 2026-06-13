@@ -4,13 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Basketball Admin (Legacy)</title>
-  <base href="/Basketball Admin UI/">
-  <link rel="stylesheet" href="/Basketball Admin UI/style.css">
-  <link rel="stylesheet" href="/Basketball Admin UI/basketball_viewer.css">
+  <base href="/basketball-admin/">
+  <link rel="stylesheet" href="/basketball-admin/style.css">
+  <link rel="stylesheet" href="/basketball-admin/basketball_viewer.css">
   </head>
 <body>
   {!! $legacy_html !!}
-  <script src="/Basketball Admin UI/app.js"></script>
-  <script src="/Basketball Admin UI/basketball_viewer.js"></script>
+  <script src="/basketball-admin/app.js"></script>
+  <script src="/basketball-admin/basketball_viewer.js"></script>
 </body>
 </html>
