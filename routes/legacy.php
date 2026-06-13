@@ -45,11 +45,13 @@ Route::middleware(['auth', 'legacy.session'])->group(function () {
         Route::redirect('/Volleyball Admin UI/viewer', '/volleyball-admin/viewer', 301);
     });
 
-    // Proxy any other legacy files (AJAX endpoints, PHP helpers, etc.) through the controller.
-    Route::any('/{sport}/{path?}', [LegacyProxyController::class, 'handle'])
-        ->where('sport', 'badminton-admin|basketball-admin|tabletennis-admin|darts-admin|volleyball-admin|analytics')
-        ->where('path', '.*');
-
     // Admin landing page (legacy) proxied for superadmins
     // NOTE: Moved to web.php with CSRF token support - see legacy.adminlanding route in web.php
 });
+
+// CRITICAL: Proxy route for static assets OUTSIDE auth middleware
+// CSS, JS, JSON, images can be served to authenticated users without re-checking auth
+Route::any('/{sport}/{path?}', [LegacyProxyController::class, 'handle'])
+    ->where('sport', 'badminton-admin|basketball-admin|tabletennis-admin|darts-admin|volleyball-admin|analytics')
+    ->where('path', '.*')
+    ->middleware(['auth', 'legacy.session']);

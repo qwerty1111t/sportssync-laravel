@@ -56,18 +56,33 @@ class LegacyProxyController extends Controller
             abort(404);
         }
 
-        if (! defined('LARAVEL_WRAPPER')) define('LARAVEL_WRAPPER', true);
-        chdir(dirname($legacyFile));
-
-        ob_start();
-        include $legacyFile;
-        $content = ob_get_clean();
-
         $ext = strtolower(pathinfo($legacyFile, PATHINFO_EXTENSION));
+        
+        // For static files, just read the content directly without executing PHP
+        $staticExtensions = ['css', 'js', 'json', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'woff', 'woff2', 'ttf', 'eot', 'html'];
+        if (in_array($ext, $staticExtensions)) {
+            $content = file_get_contents($legacyFile);
+        } else {
+            // For PHP files, execute them
+            if (! defined('LARAVEL_WRAPPER')) define('LARAVEL_WRAPPER', true);
+            chdir(dirname($legacyFile));
+            ob_start();
+            include $legacyFile;
+            $content = ob_get_clean();
+        }
+
         $mime = match ($ext) {
             'css' => 'text/css',
             'js' => 'application/javascript',
             'json' => 'application/json',
+            'png' => 'image/png',
+            'jpg', 'jpeg' => 'image/jpeg',
+            'gif' => 'image/gif',
+            'svg' => 'image/svg+xml',
+            'woff' => 'font/woff',
+            'woff2' => 'font/woff2',
+            'ttf' => 'font/ttf',
+            'eot' => 'application/vnd.ms-fontobject',
             default => 'text/html',
         };
 
