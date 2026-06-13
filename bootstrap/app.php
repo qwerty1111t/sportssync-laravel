@@ -20,6 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
                     | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
                     | \Illuminate\Http\Request::HEADER_X_FORWARDED_AWS_ELB,
         );
+        
+        // Register middleware aliases
+        $middleware->alias([
+            'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
+            'ensure.role' => \App\Http\Middleware\EnsureRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

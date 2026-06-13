@@ -107,53 +107,23 @@ Route::middleware(['auth', 'ensure.role:superadmin'])
     });
 });
 
-// Superadmin routes: full access, protected by auth + ensure.role:superadmin
-Route::middleware(['auth', 'ensure.role:superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
-    Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
+// Superadmin routes: full access, protected by auth + superadmin middleware
+Route::middleware(['auth', 'superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+    // Main superadmin dashboard (legacy admin landing page)
+    Route::get('/superadmin/dashboard', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
+    
+    // Legacy redirect for backwards compatibility
+    Route::get('/superadmin', [SuperadminController::class, 'index'])->name('superadmin.home');
+    
     Route::get('/superadmin/users', [SuperadminController::class, 'users'])->name('superadmin.users');
     Route::post('/superadmin/users/promote', [SuperadminController::class, 'promote'])->name('superadmin.users.promote');
 });
 
 // Legacy admin landing proxied through Laravel so middleware can enforce auth + role
 Route::get('/adminlanding_page.php', function (Request $request) {
-    $legacyFile = public_path('adminlanding_page.php');
-    if (! file_exists($legacyFile) || ! is_file($legacyFile)) {
-        abort(404);
-    }
-
-    if (! defined('LARAVEL_WRAPPER')) define('LARAVEL_WRAPPER', true);
-    
-    if (Auth::check()) {
-        $user = Auth::user();
-        // Set Laravel session variables (accessible via session() helper)
-        $request->session()->put('user_id', Auth::id());
-        $request->session()->put('user_role', strtolower((string)($user->role ?? 'viewer')));
-        $request->session()->put('role', strtolower((string)($user->role ?? 'viewer')));
-        $request->session()->put('username', $user->username ?? 'admin');
-        $request->session()->put('SS_ROLE', strtolower((string)($user->role ?? 'viewer'))); // Legacy compat
-        $request->session()->put('SS_USER_ID', (string)Auth::id()); // Legacy compat
-        
-        // Also populate $_SESSION for legacy PHP compatibility
-        $_SESSION['user_id'] = Auth::id();
-        $_SESSION['user_role'] = strtolower((string)($user->role ?? 'viewer'));
-        $_SESSION['role'] = strtolower((string)($user->role ?? 'viewer'));
-        $_SESSION['username'] = $user->username ?? 'admin';
-        $_SESSION['SS_ROLE'] = strtolower((string)($user->role ?? 'viewer'));
-        $_SESSION['SS_USER_ID'] = (string)Auth::id();
-    }
-    
-    chdir(public_path());
-    ob_start();
-    try {
-        include $legacyFile;
-        $content = ob_get_clean();
-    } catch (\Throwable $e) {
-        if (ob_get_level()) ob_end_clean();
-        abort(500, 'Legacy admin page error');
-    }
-    
-    return response($content)->header('Content-Type', 'text/html; charset=utf-8');
-})->middleware(['auth', 'superadmin'])->name('legacy.adminlanding');
+    // Redirect to the new superadmin dashboard (which serves the same legacy content)
+    return redirect('/superadmin/dashboard', 301);
+})->name('legacy.adminlanding');
 
 require __DIR__.'/legacy.php';
 require __DIR__.'/auth.php';

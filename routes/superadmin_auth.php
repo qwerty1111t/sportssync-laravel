@@ -20,11 +20,16 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
         Route::post('logout', [\App\Http\Controllers\Auth\AuthenticatedSessionController::class, 'destroy'])->name('logout');
     });
 
-    // Superadmin proxied admin landing — provide shortcut under /superadmin/adminlanding
+    // Superadmin proxied admin dashboard — provide shortcut under /superadmin/adminlanding
     Route::middleware(['auth', 'superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
         Route::get('adminlanding', function () {
-            // Redirect to proxied legacy admin landing handled elsewhere
-            return redirect('/adminlanding');
+            // Redirect to the superadmin dashboard
+            return redirect('/superadmin/dashboard');
         })->name('adminlanding');
+        
+        Route::get('dashboard', function () {
+            // Redirect to the main superadmin dashboard route
+            return redirect('/superadmin/dashboard');
+        })->name('dashboard');
     });
 });

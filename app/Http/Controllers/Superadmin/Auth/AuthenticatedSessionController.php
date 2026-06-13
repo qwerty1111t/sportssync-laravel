@@ -85,7 +85,7 @@ class AuthenticatedSessionController extends Controller
         if ($next !== '') {
             $n = strtolower($next);
             if (str_contains($n, 'adminlanding')) {
-                return redirect('/adminlanding_page.php');
+                return redirect('/superadmin/dashboard');
             }
             if (preg_match('#admin ui|admin\.php|viewer\.php#i', $n)) {
                 $decoded  = urldecode($next);
@@ -95,7 +95,7 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        // Default for superadmin — always land on the legacy admin landing page.
-        return redirect('/adminlanding_page.php');
+        // Default for superadmin — land on superadmin dashboard.
+        return redirect('/superadmin/dashboard');
     }
 }

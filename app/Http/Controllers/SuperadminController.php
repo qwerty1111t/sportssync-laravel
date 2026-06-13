@@ -13,8 +13,44 @@ class SuperadminController extends Controller
 
     public function index(Request $request)
     {
-        // For superadmins prefer the legacy admin landing page
-        return redirect(route('legacy.adminlanding'));
+        // Serve the legacy admin landing page content for superadmin dashboard
+        $legacyFile = public_path('adminlanding_page.php');
+        if (! file_exists($legacyFile) || ! is_file($legacyFile)) {
+            abort(404, 'Admin dashboard not found');
+        }
+
+        if (! defined('LARAVEL_WRAPPER')) define('LARAVEL_WRAPPER', true);
+        
+        if (Auth::check()) {
+            $user = Auth::user();
+            // Set Laravel session variables (accessible via session() helper)
+            $request->session()->put('user_id', Auth::id());
+            $request->session()->put('user_role', strtolower((string)($user->role ?? 'viewer')));
+            $request->session()->put('role', strtolower((string)($user->role ?? 'viewer')));
+            $request->session()->put('username', $user->username ?? 'admin');
+            $request->session()->put('SS_ROLE', strtolower((string)($user->role ?? 'viewer'))); // Legacy compat
+            $request->session()->put('SS_USER_ID', (string)Auth::id()); // Legacy compat
+            
+            // Also populate $_SESSION for legacy PHP compatibility
+            $_SESSION['user_id'] = Auth::id();
+            $_SESSION['user_role'] = strtolower((string)($user->role ?? 'viewer'));
+            $_SESSION['role'] = strtolower((string)($user->role ?? 'viewer'));
+            $_SESSION['username'] = $user->username ?? 'admin';
+            $_SESSION['SS_ROLE'] = strtolower((string)($user->role ?? 'viewer'));
+            $_SESSION['SS_USER_ID'] = (string)Auth::id();
+        }
+        
+        chdir(public_path());
+        ob_start();
+        try {
+            include $legacyFile;
+            $content = ob_get_clean();
+        } catch (\Throwable $e) {
+            if (ob_get_level()) ob_end_clean();
+            abort(500, 'Admin dashboard error: ' . $e->getMessage());
+        }
+        
+        return response($content)->header('Content-Type', 'text/html; charset=utf-8');
     }
 
     public function users(Request $request)
