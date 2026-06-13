@@ -20,8 +20,9 @@ class TableTennisViewerController extends Controller
         }
         $mysqli->set_charset($cfg['charset'] ?? 'utf8mb4');
         ob_start(); include $legacyPath; $html = ob_get_clean();
-        $html = str_replace('tabletennis_viewer.css', '/tabletennis-admin/tabletennis_viewer.css', $html);
-        $html = str_replace('tabletennis_viewer.js', '/tabletennis-admin/tabletennis_viewer.js', $html);
+        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
+        $html = str_replace('<link rel="stylesheet" href="tabletennis_viewer.css">', '', $html);
+        $html = str_replace('<script src="tabletennis_viewer.js"></script>', '', $html);
         $this->injectLegacyBasePath('tabletennis-admin', $html);
         return view('tabletennis.viewer', ['legacy_html' => $html]);
     }

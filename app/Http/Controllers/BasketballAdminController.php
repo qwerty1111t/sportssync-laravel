@@ -37,9 +37,7 @@ class BasketballAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
-        $html = str_replace('<link rel="stylesheet" href="style.css">', '', $html);
-        $html = str_replace('<script src="app.js"></script>', '', $html);
+        // CSS/JS are loaded by legacy HTML with relative paths - base href resolves them
         $this->injectLegacyBasePath('basketball-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.

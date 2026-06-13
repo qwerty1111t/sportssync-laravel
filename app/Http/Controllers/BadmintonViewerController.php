@@ -26,9 +26,9 @@ class BadmintonViewerController extends Controller
         include $legacyPath; // outputs the viewer HTML
         $html = ob_get_clean();
 
-        // Fix relative asset paths to use new hyphenated routes
-        $html = str_replace('badminton_viewer.css', '/badminton-admin/badminton_viewer.css', $html);
-        $html = str_replace('badminton_viewer.js', '/badminton-admin/badminton_viewer.js', $html);
+        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
+        $html = str_replace('<link rel="stylesheet" href="badminton_viewer.css">', '', $html);
+        $html = str_replace('<script src="badminton_viewer.js"></script>', '', $html);
         $this->injectLegacyBasePath('badminton-admin', $html);
 
         return view('badminton.viewer', ['legacy_html' => $html]);

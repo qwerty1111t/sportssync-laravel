@@ -5,9 +5,8 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Badminton Admin (Legacy)</title>
     <base href="/badminton-admin/">
-    <link rel="stylesheet" href="/badminton-admin/badminton_admin.css">
     <style>/* small wrapper to ensure full-width */ body { background: #111; }</style>
-    </head>
+</head>
 <body>
     {!! $legacy_html !!}
     <script src="/badminton-admin/badminton_admin.js"></script>

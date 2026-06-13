@@ -25,8 +25,9 @@ class BasketballViewerController extends Controller
             return response('Database connection failed', 500);
         }
         ob_start(); include $legacyPath; $html = ob_get_clean();
-        $html = str_replace('basketball_viewer.css', '/basketball-admin/basketball_viewer.css', $html);
-        $html = str_replace('basketball_viewer.js', '/basketball-admin/basketball_viewer.js', $html);
+        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
+        $html = str_replace('<link rel="stylesheet" href="basketball_viewer.css">', '', $html);
+        $html = str_replace('<script src="basketball_viewer.js"></script>', '', $html);
         $this->injectLegacyBasePath('basketball-admin', $html);
         return view('basketball.viewer', ['legacy_html' => $html]);
     }

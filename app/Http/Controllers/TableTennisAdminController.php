@@ -31,10 +31,11 @@ class TableTennisAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Rewrite ALL asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
-        $html = str_replace('tabletennis_admin.css', '/tabletennis-admin/tabletennis_admin.css', $html);
-        $html = str_replace('tabletennis_admin.js', '/tabletennis-admin/tabletennis_admin.js', $html);
-        $html = str_replace('tabletennis_viewer.js', '/tabletennis-admin/tabletennis_viewer.js', $html);
+        // Remove CSS/JS links from legacy HTML (Blade view loads them in proper <head> location)
+        ob_start();
+        include $legacyPath;
+        $html = ob_get_clean();
+        // CSS/JS are loaded by legacy HTML with relative paths - base href resolves them
         $this->injectLegacyBasePath('tabletennis-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.

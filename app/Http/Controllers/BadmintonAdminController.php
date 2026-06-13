@@ -32,10 +32,10 @@ class BadmintonAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Rewrite ALL asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
-        $html = str_replace('badminton_admin.css', '/badminton-admin/badminton_admin.css', $html);
-        $html = str_replace('badminton_admin.js', '/badminton-admin/badminton_admin.js', $html);
-        $html = str_replace('badminton_viewer.js', '/badminton-admin/badminton_viewer.js', $html);
+        ob_start();
+        include $legacyPath;
+        $html = ob_get_clean();
+        // CSS/JS are loaded by legacy HTML with relative paths - base href resolves them
         $this->injectLegacyBasePath('badminton-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.

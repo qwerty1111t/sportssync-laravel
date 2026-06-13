@@ -35,9 +35,8 @@ class DartsAdminController extends Controller
         $legacyDir = '/darts-admin/';
         $script = '<script>window.LEGACY_BASE_PATH = ' . json_encode($legacyDir) . ';</script>';
         $html = $script . $html;
-        // Fix a couple of resource paths that expect the legacy folder root
+        // CSS/JS are loaded by legacy HTML with relative paths - base href resolves them
         $html = str_replace('darts.sql', $legacyDir . 'darts.sql', $html);
-        $html = str_replace('darts_admin.js', $legacyDir . 'darts_admin.js', $html);
         $this->injectLegacyBasePath('darts-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
