@@ -15,25 +15,39 @@ use Illuminate\Support\Facades\Auth;
 // All legacy admin UI access must go through Laravel and require auth + legacy.session
 Route::middleware(['auth', 'legacy.session'])->group(function () {
     // Admin routes - require both auth + admin role
+    // NEW: Use hyphenated routes (no spaces) to avoid Railway hikari security blocks
     Route::middleware('ensure.role:admin')->group(function () {
-        Route::get('/Badminton Admin UI', [BadmintonAdminController::class, 'index'])->name('badminton.admin');
-        Route::get('/Basketball Admin UI', [BasketballAdminController::class, 'index'])->name('basketball.admin');
-        Route::get('/TABLE TENNIS ADMIN UI', [TableTennisAdminController::class, 'index'])->name('tabletennis.admin');
-        Route::get('/DARTS ADMIN UI', [DartsAdminController::class, 'index'])->name('darts.admin');
-        Route::get('/Volleyball Admin UI', [VolleyballAdminController::class, 'index'])->name('volleyball.admin');
+        Route::get('/badminton-admin', [BadmintonAdminController::class, 'index'])->name('badminton.admin');
+        Route::get('/basketball-admin', [BasketballAdminController::class, 'index'])->name('basketball.admin');
+        Route::get('/tabletennis-admin', [TableTennisAdminController::class, 'index'])->name('tabletennis.admin');
+        Route::get('/darts-admin', [DartsAdminController::class, 'index'])->name('darts.admin');
+        Route::get('/volleyball-admin', [VolleyballAdminController::class, 'index'])->name('volleyball.admin');
+        
+        // LEGACY REDIRECT: Support old space-based URLs for backward compatibility
+        Route::redirect('/Badminton Admin UI', '/badminton-admin', 301);
+        Route::redirect('/Basketball Admin UI', '/basketball-admin', 301);
+        Route::redirect('/TABLE TENNIS ADMIN UI', '/tabletennis-admin', 301);
+        Route::redirect('/DARTS ADMIN UI', '/darts-admin', 301);
+        Route::redirect('/Volleyball Admin UI', '/volleyball-admin', 301);
     });
 
     // Viewer routes - require auth only (allow both viewer and admin)
     Route::middleware('ensure.role:viewer')->group(function () {
-        Route::get('/Badminton Admin UI/viewer', [BadmintonViewerController::class, 'show'])->name('badminton.viewer');
-        Route::get('/Basketball Admin UI/viewer', [BasketballViewerController::class, 'show'])->name('basketball.viewer');
-        Route::get('/TABLE TENNIS ADMIN UI/viewer', [TableTennisViewerController::class, 'show'])->name('tabletennis.viewer');
-        Route::get('/Volleyball Admin UI/viewer', [VolleyballViewerController::class, 'show'])->name('volleyball.viewer');
+        Route::get('/badminton-admin/viewer', [BadmintonViewerController::class, 'show'])->name('badminton.viewer');
+        Route::get('/basketball-admin/viewer', [BasketballViewerController::class, 'show'])->name('basketball.viewer');
+        Route::get('/tabletennis-admin/viewer', [TableTennisViewerController::class, 'show'])->name('tabletennis.viewer');
+        Route::get('/volleyball-admin/viewer', [VolleyballViewerController::class, 'show'])->name('volleyball.viewer');
+        
+        // LEGACY REDIRECT
+        Route::redirect('/Badminton Admin UI/viewer', '/badminton-admin/viewer', 301);
+        Route::redirect('/Basketball Admin UI/viewer', '/basketball-admin/viewer', 301);
+        Route::redirect('/TABLE TENNIS ADMIN UI/viewer', '/tabletennis-admin/viewer', 301);
+        Route::redirect('/Volleyball Admin UI/viewer', '/volleyball-admin/viewer', 301);
     });
 
     // Proxy any other legacy files (AJAX endpoints, PHP helpers, etc.) through the controller.
     Route::any('/{sport}/{path?}', [LegacyProxyController::class, 'handle'])
-        ->where('sport', 'TABLE TENNIS ADMIN UI|Badminton Admin UI|Basketball Admin UI|DARTS ADMIN UI|Volleyball Admin UI|analytics')
+        ->where('sport', 'badminton-admin|basketball-admin|tabletennis-admin|darts-admin|volleyball-admin|analytics')
         ->where('path', '.*');
 
     // Admin landing page (legacy) proxied for superadmins
