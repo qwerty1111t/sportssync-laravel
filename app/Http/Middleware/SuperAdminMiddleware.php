@@ -5,6 +5,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SuperAdminMiddleware
 {
@@ -25,25 +26,30 @@ class SuperAdminMiddleware
                             $dbRole = DB::table('users')->where('id', $user->id)->value('role');
                             if ($dbRole) {
                                 $role = $dbRole;
+                                Log::debug('[SuperAdminMiddleware] Got role from DB', ['role' => $role, 'user_id' => $user->id]);
                             } elseif (isset($user->role)) {
                                 $role = $user->role;
+                                Log::debug('[SuperAdminMiddleware] Got role from user model', ['role' => $role, 'user_id' => $user->id]);
                             }
-                        } catch (\Throwable $_) {
+                        } catch (\Throwable $e) {
                             $role = $user->role ?? null;
+                            Log::debug('[SuperAdminMiddleware] DB query failed, using model role', ['role' => $role, 'error' => $e->getMessage()]);
                         }
                     } else {
                         $role = $user->role ?? null;
+                        Log::debug('[SuperAdminMiddleware] No user ID, using model role', ['role' => $role]);
                     }
                 }
             }
-        } catch (\Throwable $_) {
-            // ignore and fall through to legacy/session checks
+        } catch (\Throwable $e) {
+            Log::debug('[SuperAdminMiddleware] Auth check failed', ['error' => $e->getMessage()]);
         }
 
         // 2) Try request user (alternate access point)
         if (!$role && $request->user()) {
             $ruser = $request->user();
             $role = $ruser->role ?? $role;
+            Log::debug('[SuperAdminMiddleware] Got role from request->user()', ['role' => $role]);
         }
 
         // 3) Legacy PHP session / lightweight cookie fallback (SS_ROLE)
@@ -101,15 +107,34 @@ class SuperAdminMiddleware
             $normalized = 'admin';
         }
 
+        Log::debug('[SuperAdminMiddleware] Final role check', [
+            'raw_role' => $role,
+            'normalized_role' => $normalized,
+            'auth_check' => Auth::check(),
+            'user_id' => Auth::id(),
+            'path' => $request->path(),
+        ]);
+
         // Allow only superadmin
-        if ($normalized !== 'superadmin') {
-            // If no valid auth present, redirect to login; otherwise deny
-            if (!Auth::check()) {
-                return redirect('/login');
-            }
-            abort(403, 'Unauthorized access');
+        if ($normalized === 'superadmin') {
+            // User is authenticated AND has superadmin role - allow
+            Log::info('[SuperAdminMiddleware] Superadmin access granted', ['user_id' => Auth::id(), 'path' => $request->path()]);
+            return $next($request);
         }
 
-        return $next($request);
+        // User does not have superadmin role
+        if (!Auth::check()) {
+            // Not authenticated at all - redirect to login
+            Log::info('[SuperAdminMiddleware] Not authenticated, redirecting to login', ['path' => $request->path()]);
+            return redirect('/superadmin/login');
+        }
+
+        // Authenticated but not superadmin - deny
+        Log::warning('[SuperAdminMiddleware] Authenticated but not superadmin, denying access', [
+            'user_id' => Auth::id(),
+            'role' => $normalized,
+            'path' => $request->path(),
+        ]);
+        abort(403, 'Superadmin role required');
     }
 }
