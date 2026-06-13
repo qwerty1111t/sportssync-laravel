@@ -1126,19 +1126,19 @@ $sportEmojis = [
     <div class="sidebar-section">
       <div class="sidebar-label">Matches</div>
       <nav class="sidebar-nav">
-        <a href="/Badminton%20Admin%20UI/badminton_matches_admin.php" class="sidebar-link">
+        <a href="<?php echo route('badminton.admin'); ?>" class="sidebar-link">
           <span class="s-icon">🏸</span> Badminton Matches
         </a>
-        <a href="/Basketball%20Admin%20UI/basketball_matches_admin.php" class="sidebar-link">
+        <a href="<?php echo route('basketball.admin'); ?>" class="sidebar-link">
           <span class="s-icon">🏀</span> Basketball Matches
         </a>
-        <a href="/DARTS%20ADMIN%20UI/history.html" class="sidebar-link">
+        <a href="<?php echo route('darts.admin'); ?>" class="sidebar-link">
           <span class="s-icon">🎯</span> Darts Matches
         </a>
-        <a href="/TABLE%20TENNIS%20ADMIN%20UI/tabletennis_matches_admin.php" class="sidebar-link">
+        <a href="<?php echo route('tabletennis.admin'); ?>" class="sidebar-link">
           <span class="s-icon">🏓</span> Table Tennis Matches
         </a>
-        <a href="/Volleyball%20Admin%20UI/volleyball_matches_admin.php" class="sidebar-link">
+        <a href="<?php echo route('volleyball.admin'); ?>" class="sidebar-link">
           <span class="s-icon">🏐</span> Volleyball Matches
         </a>
       </nav>
