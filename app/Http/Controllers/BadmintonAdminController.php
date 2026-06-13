@@ -35,14 +35,13 @@ class BadmintonAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        // Strip the outer HTML structure and doctypes from legacy file - Blade view provides wrapper
-        $html = preg_replace('/<\?php.*?\?>/s', '', $html); // Remove PHP tags
+        // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
         $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
-        $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening tag
-        $html = preg_replace('/<\/html>/i', '', $html); // Remove html closing tag  
-        $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html); // Remove entire head section
-        $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening tag
-        $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing tag
+        $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening
+        $html = preg_replace('/<\/html>/i', '', $html); // Remove html closing
+        $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html); // Remove entire head
+        $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
+        $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
         $this->injectLegacyBasePath('badminton-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
