@@ -68,18 +68,24 @@ class SuperAdminMiddleware
             Log::debug('[SuperAdminMiddleware] Got role from request->user()', ['role' => $role]);
         }
 
-        // 3) Legacy PHP session / lightweight cookie fallback (SS_ROLE)
-        // First check for session user_id to ensure user is authenticated via session
+        // 3) Laravel session() - more reliable than raw $_SESSION
         if (!$role) {
-            // Check if user is authenticated via session
+            $role = session('SS_ROLE') ?? session('role') ?? session('user_role') ?? null;
+            if ($role) {
+                Log::debug('[SuperAdminMiddleware] Got role from Laravel session()', ['role' => $role]);
+            }
+        }
+
+        // 4) Raw $_SESSION / PHP session fallback
+        if (!$role) {
             if (!empty($_SESSION['user_id'])) {
-                // User has a session user_id - get role from session or database
                 if (!empty($_SESSION['user_role'])) {
                     $role = $_SESSION['user_role'];
                 } elseif (!empty($_SESSION['SS_ROLE'])) {
                     $role = $_SESSION['SS_ROLE'];
+                } elseif (!empty($_SESSION['role'])) {
+                    $role = $_SESSION['role'];
                 } else {
-                    // Try to fetch from database
                     try {
                         $userId = (int)$_SESSION['user_id'];
                         $dbRole = DB::table('users')->where('id', $userId)->value('role');
@@ -92,13 +98,18 @@ class SuperAdminMiddleware
                 }
             }
             
-            // Fallback to cookies if no session user
-            if (!$role && !empty($_COOKIE['SS_ROLE'])) {
-                $role = urldecode($_COOKIE['SS_ROLE']);
+            if ($role) {
+                Log::debug('[SuperAdminMiddleware] Got role from $_SESSION', ['role' => $role]);
             }
         }
 
-        // Normalize role (handle array / JSON strings and case-insensitivity)
+        // 5) Cookie fallback
+        if (!$role && !empty($_COOKIE['SS_ROLE'])) {
+            $role = urldecode($_COOKIE['SS_ROLE']);
+            Log::debug('[SuperAdminMiddleware] Got role from $_COOKIE', ['role' => $role]);
+        }
+
+        // Normalize role
         $normalized = '';
         if (is_array($role)) {
             $normalized = strtolower(trim((string)($role[0] ?? $role['role'] ?? '')));
@@ -123,49 +134,39 @@ class SuperAdminMiddleware
             $normalized = 'admin';
         }
 
-        // GUARD: Detect redirect loops by checking if we're already in the superadmin namespace
         $currentPath = $request->path();
-        $isSuperadminPath = str_starts_with($currentPath, 'superadmin');
         
-        Log::debug('[SuperAdminMiddleware] Final role check', [
+        Log::debug('[SuperAdminMiddleware] Role detection complete', [
             'raw_role' => $role,
             'normalized_role' => $normalized,
             'auth_check' => Auth::check(),
-            'user_id' => Auth::id(),
+            'user_id' => Auth::id() ?? session('user_id') ?? $_SESSION['user_id'] ?? null,
             'path' => $currentPath,
-            'is_superadmin_path' => $isSuperadminPath,
-            'session_user_id' => $_SESSION['user_id'] ?? null,
-            'session_ss_role' => $_SESSION['SS_ROLE'] ?? null,
-            'cookie_ss_role' => $_COOKIE['SS_ROLE'] ?? null,
         ]);
 
-        // SUCCESS: Allow superadmin users through
+        // SUCCESS: Superadmin access granted
         if ($normalized === 'superadmin') {
             Log::info('[SuperAdminMiddleware] ✓ SUPERADMIN ACCESS GRANTED', [
-                'user_id' => $userId ?? Auth::id(),
+                'normalized_role' => $normalized,
                 'path' => $currentPath,
             ]);
             return $next($request);
         }
 
-        // FAIL: No authentication found from any source
+        // FAIL: No role found - redirect to login (unless already at login page)
         if (empty($role)) {
-            Log::warning('[SuperAdminMiddleware] ✗ NO AUTHENTICATION - redirecting to login', [
+            Log::warning('[SuperAdminMiddleware] ✗ NO ROLE FOUND - redirecting to login', [
                 'path' => $currentPath,
-                'auth_check' => Auth::check(),
-                'session_user_id' => $_SESSION['user_id'] ?? null,
             ]);
             
-            // Don't redirect if already at login page (prevent loops)
             if (!str_contains($currentPath, 'login') && !str_contains($currentPath, 'password')) {
                 return redirect('/superadmin/login');
             }
             return $next($request);
         }
 
-        // FAIL: Authenticated but wrong role
-        Log::warning('[SuperAdminMiddleware] ✗ WRONG ROLE - denying access', [
-            'user_id' => $userId ?? Auth::id(),
+        // FAIL: Wrong role - deny access
+        Log::warning('[SuperAdminMiddleware] ✗ WRONG ROLE - access denied', [
             'role_found' => $normalized,
             'path' => $currentPath,
         ]);
