@@ -20,33 +20,25 @@
           $isAdmin = in_array($r, ['admin', 'superadmin', 'scorekeeper'], true);
         }
 
-        // Logged-in users go directly to the role-correct file.
+        // Logged-in users go directly to the role-correct Laravel route.
         // Guests pass a sport key so the controller resolves the file after login.
-        $bbLink = $isAdmin ? 'Basketball%20Admin%20UI/index.php' : 'Basketball%20Admin%20UI/basketball_viewer.php';
+        $bbLink = $isAdmin ? route('basketball.admin') : route('basketball.viewer');
         $bbNext = $user ? $bbLink : route('login') . '?next=sport:basketball';
 
-        $vbLink = $isAdmin ? 'Volleyball%20Admin%20UI/volleyball_admin.php' : 'Volleyball%20Admin%20UI/volleyball_viewer.php';
+        $vbLink = $isAdmin ? route('volleyball.admin') : route('volleyball.viewer');
         $vbNext = $user ? $vbLink : route('login') . '?next=sport:volleyball';
 
-        $bdLink = $isAdmin ? 'Badminton%20Admin%20UI/badminton_admin.php' : 'Badminton%20Admin%20UI/badminton_viewer.php';
+        $bdLink = $isAdmin ? route('badminton.admin') : route('badminton.viewer');
         $bdNext = $user ? $bdLink : route('login') . '?next=sport:badminton';
 
-        $ttLink = $isAdmin ? 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_admin.php' : 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_viewer.php';
+        $ttLink = $isAdmin ? route('tabletennis.admin') : route('tabletennis.viewer');
         $ttNext = $user ? $ttLink : route('login') . '?next=sport:tabletennis';
 
-        $dartsViewerPath = public_path('DARTS ADMIN UI/viewer.php');
-        if (file_exists($dartsViewerPath)) {
-            $viewerHref = 'DARTS%20ADMIN%20UI/viewer.php';
-            $adminHref  = 'DARTS%20ADMIN%20UI/index.php';
-        } else {
-            $viewerHref = '/admin/darts/viewer';
-            $adminHref  = '/admin/darts';
-        }
-        $drLink = $isAdmin ? $adminHref : $viewerHref;
+        $drLink = $isAdmin ? route('darts.admin') : url('/DARTS ADMIN UI/viewer.php');
         $drNext = $user ? $drLink : route('login') . '?next=sport:darts';
 
-        $analyticsHref = $user ? 'analytics/analytics.php' : route('login') . '?next=sport:analytics';
-        $profilesHref  = $user ? 'analytics/players.php' : route('login') . '?next=sport:players';
+        $analyticsHref = $user ? url('/analytics/analytics.php') : route('login') . '?next=sport:analytics';
+        $profilesHref  = $user ? url('/analytics/players.php') : route('login') . '?next=sport:players';
       @endphp
 
       <a href="{{ $bbNext }}" class="sport-card reveal" data-sport="basketball">
