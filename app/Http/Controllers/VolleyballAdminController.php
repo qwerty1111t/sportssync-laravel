@@ -16,7 +16,12 @@ class VolleyballAdminController extends Controller
     public function index(Request $request)
     {
         $legacyPath = public_path('Volleyball Admin UI/volleyball_admin.php');
-        if (!file_exists($legacyPath)) return response('Legacy volleyball admin missing', 500);
+        Log::debug('Volleyball Admin path check', ['path' => $legacyPath, 'exists' => file_exists($legacyPath), 'base' => public_path('')]);
+        
+        if (!file_exists($legacyPath)) {
+            Log::error('Volleyball Admin file not found', ['path' => $legacyPath]);
+            return response('Legacy volleyball admin missing at: ' . $legacyPath, 500);
+        }
         if (!defined('LARAVEL_WRAPPER')) {
             define('LARAVEL_WRAPPER', true);
         }

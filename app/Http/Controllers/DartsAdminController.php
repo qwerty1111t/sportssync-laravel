@@ -16,7 +16,12 @@ class DartsAdminController extends Controller
     public function index(Request $request)
     {
         $legacyPath = public_path('DARTS ADMIN UI/index.php');
-        if (!file_exists($legacyPath)) return response('Legacy darts admin missing', 500);
+        Log::debug('Darts Admin path check', ['path' => $legacyPath, 'exists' => file_exists($legacyPath), 'base' => public_path('')]);
+        
+        if (!file_exists($legacyPath)) {
+            Log::error('Darts Admin file not found', ['path' => $legacyPath]);
+            return response('Legacy darts admin missing at: ' . $legacyPath, 500);
+        }
         if (!defined('LARAVEL_WRAPPER')) {
             define('LARAVEL_WRAPPER', true);
         }

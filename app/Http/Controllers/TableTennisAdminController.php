@@ -16,7 +16,12 @@ class TableTennisAdminController extends Controller
     public function index(Request $request)
     {
         $legacyPath = public_path('TABLE TENNIS ADMIN UI/tabletennis_admin.php');
-        if (!file_exists($legacyPath)) return response('Legacy TT admin missing', 500);
+        Log::debug('TableTennis Admin path check', ['path' => $legacyPath, 'exists' => file_exists($legacyPath), 'base' => public_path('')]);
+        
+        if (!file_exists($legacyPath)) {
+            Log::error('TableTennis Admin file not found', ['path' => $legacyPath]);
+            return response('Legacy TT admin missing at: ' . $legacyPath, 500);
+        }
         if (!defined('LARAVEL_WRAPPER')) {
             define('LARAVEL_WRAPPER', true);
         }

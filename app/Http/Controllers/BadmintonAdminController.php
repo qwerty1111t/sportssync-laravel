@@ -16,8 +16,11 @@ class BadmintonAdminController extends Controller
     public function index(Request $request)
     {
         $legacyPath = public_path('Badminton Admin UI/badminton_admin.php');
+        Log::debug('Badminton Admin path check', ['path' => $legacyPath, 'exists' => file_exists($legacyPath), 'base' => public_path('')]);
+        
         if (!file_exists($legacyPath)) {
-            return response('Legacy admin file missing', 500);
+            Log::error('Badminton Admin file not found', ['path' => $legacyPath]);
+            return response('Legacy admin file missing at: ' . $legacyPath, 500);
         }
 
         if (!defined('LARAVEL_WRAPPER')) {
