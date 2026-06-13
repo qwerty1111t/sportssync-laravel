@@ -127,7 +127,7 @@ Route::middleware(['auth', 'ensure.role:superadmin'])
 // NOTE: Do NOT use 'auth' middleware here - it checks Auth::check() (Laravel Auth system)
 // which may not be synced with session values. Use 'superadmin' middleware instead,
 // which validates using session('SS_ROLE') and $_COOKIE['SS_ROLE'] directly.
-Route::middleware(['superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+Route::middleware(['web', 'legacy.session', 'superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
     // Main superadmin dashboard (legacy admin landing page)
     Route::get('/superadmin/dashboard', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
     

@@ -124,7 +124,6 @@ class SuperAdminMiddleware
         }
 
         // GUARD: Detect redirect loops by checking if we're already in the superadmin namespace
-        // If middleware keeps redirecting, we'll end up in a loop
         $currentPath = $request->path();
         $isSuperadminPath = str_starts_with($currentPath, 'superadmin');
         
@@ -135,39 +134,39 @@ class SuperAdminMiddleware
             'user_id' => Auth::id(),
             'path' => $currentPath,
             'is_superadmin_path' => $isSuperadminPath,
+            'session_user_id' => $_SESSION['user_id'] ?? null,
+            'session_ss_role' => $_SESSION['SS_ROLE'] ?? null,
+            'cookie_ss_role' => $_COOKIE['SS_ROLE'] ?? null,
         ]);
 
-        // Allow only superadmin
+        // SUCCESS: Allow superadmin users through
         if ($normalized === 'superadmin') {
-            // User is authenticated AND has superadmin role - allow
-            Log::info('[SuperAdminMiddleware] Superadmin access granted', [
-                'user_id' => Auth::id() ?? session('user_id') ?? $_SESSION['user_id'] ?? 'unknown',
+            Log::info('[SuperAdminMiddleware] ✓ SUPERADMIN ACCESS GRANTED', [
+                'user_id' => $userId ?? Auth::id(),
                 'path' => $currentPath,
-                'normalized_role' => $normalized,
             ]);
             return $next($request);
         }
 
-        // User does not have superadmin role (no role found from any source)
+        // FAIL: No authentication found from any source
         if (empty($role)) {
-            // Not authenticated at all (no Auth record, no session user_id, no SS_ROLE cookie)
-            // GUARD: only redirect if we're not already at login path
+            Log::warning('[SuperAdminMiddleware] ✗ NO AUTHENTICATION - redirecting to login', [
+                'path' => $currentPath,
+                'auth_check' => Auth::check(),
+                'session_user_id' => $_SESSION['user_id'] ?? null,
+            ]);
+            
+            // Don't redirect if already at login page (prevent loops)
             if (!str_contains($currentPath, 'login') && !str_contains($currentPath, 'password')) {
-                Log::info('[SuperAdminMiddleware] No authentication found, redirecting to login', [
-                    'path' => $currentPath,
-                    'reason' => 'no_role_detected',
-                ]);
                 return redirect('/superadmin/login');
             }
-            Log::debug('[SuperAdminMiddleware] No authentication but already at auth page, allowing through', ['path' => $currentPath]);
             return $next($request);
         }
 
-        // Authenticated but not superadmin - deny (403)
-        Log::warning('[SuperAdminMiddleware] Authenticated but not superadmin, denying access', [
-            'user_id' => Auth::id() ?? session('user_id') ?? $_SESSION['user_id'] ?? 'unknown',
-            'role_found' => $role,
-            'normalized_role' => $normalized,
+        // FAIL: Authenticated but wrong role
+        Log::warning('[SuperAdminMiddleware] ✗ WRONG ROLE - denying access', [
+            'user_id' => $userId ?? Auth::id(),
+            'role_found' => $normalized,
             'path' => $currentPath,
         ]);
         abort(403, 'Superadmin role required');
