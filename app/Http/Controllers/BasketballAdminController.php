@@ -37,10 +37,11 @@ class BasketballAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        $html = str_replace('basketball_viewer.css', '/Basketball Admin UI/basketball_viewer.css', $html);
-        $html = str_replace('basketball_viewer.js', '/Basketball Admin UI/basketball_viewer.js', $html);
-        $html = str_replace('style.css', '/Basketball Admin UI/style.css', $html);
-        $this->injectLegacyBasePath('Basketball Admin UI', $html);
+        // Rewrite asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
+        $html = str_replace('basketball_viewer.css', '/basketball-admin/basketball_viewer.css', $html);
+        $html = str_replace('basketball_viewer.js', '/basketball-admin/basketball_viewer.js', $html);
+        $html = str_replace('style.css', '/basketball-admin/style.css', $html);
+        $this->injectLegacyBasePath('basketball-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 

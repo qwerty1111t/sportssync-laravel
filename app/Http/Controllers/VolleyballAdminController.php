@@ -37,9 +37,10 @@ class VolleyballAdminController extends Controller
         ob_start();
         include $legacyPath;
         $html = ob_get_clean();
-        $html = str_replace('volleyball_admin.css', '/Volleyball Admin UI/volleyball_admin.css', $html);
-        $html = str_replace('volleyball_viewer.js', '/Volleyball Admin UI/volleyball_viewer.js', $html);
-        $this->injectLegacyBasePath('Volleyball Admin UI', $html);
+        // Rewrite asset paths to use new hyphenated routes (no spaces - avoids Railway security blocks)
+        $html = str_replace('volleyball_admin.css', '/volleyball-admin/volleyball_admin.css', $html);
+        $html = str_replace('volleyball_viewer.js', '/volleyball-admin/volleyball_viewer.js', $html);
+        $this->injectLegacyBasePath('volleyball-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 

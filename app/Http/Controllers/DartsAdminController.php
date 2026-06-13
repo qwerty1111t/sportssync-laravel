@@ -32,12 +32,12 @@ class DartsAdminController extends Controller
         include $legacyPath;
         $html = ob_get_clean();
         // Expose a JS global so embedded legacy pages can resolve sibling URLs
-        $legacyDir = '/DARTS ADMIN UI/';
+        $legacyDir = '/darts-admin/';
         $script = '<script>window.LEGACY_BASE_PATH = ' . json_encode($legacyDir) . ';</script>';
         $html = $script . $html;
         // Fix a couple of resource paths that expect the legacy folder root
         $html = str_replace('darts.sql', $legacyDir . 'darts.sql', $html);
-        $this->injectLegacyBasePath('DARTS ADMIN UI', $html);
+        $this->injectLegacyBasePath('darts-admin', $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 
