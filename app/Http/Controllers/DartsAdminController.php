@@ -33,9 +33,14 @@ class DartsAdminController extends Controller
         $html = ob_get_clean();
         // Expose a JS global so embedded legacy pages can resolve sibling URLs
         $legacyDir = '/darts-admin/';
-        $script = '<script>window.LEGACY_BASE_PATH = ' . json_encode($legacyDir) . ';</script>';
-        $html = $script . $html;
-        // CSS/JS are loaded by legacy HTML with relative paths - base href resolves them
+        // Strip the outer HTML structure and doctypes from legacy file - Blade view provides wrapper
+        $html = preg_replace('/<\?php.*?\?>/s', '', $html); // Remove PHP tags
+        $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
+        $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening tag
+        $html = preg_replace('/<\/html>/i', '', $html); // Remove html closing tag  
+        $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html); // Remove entire head section
+        $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening tag
+        $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing tag
         $html = str_replace('darts.sql', $legacyDir . 'darts.sql', $html);
         $this->injectLegacyBasePath('darts-admin', $html);
 
