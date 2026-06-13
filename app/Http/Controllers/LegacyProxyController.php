@@ -11,13 +11,38 @@ class LegacyProxyController extends Controller
      */
     public function handle(Request $request, $sport, $path = '')
     {
+        // Map hyphenated route names to actual file system directory names
+        $sportMap = [
+            'badminton-admin' => 'Badminton Admin UI',
+            'basketball-admin' => 'Basketball Admin UI',
+            'tabletennis-admin' => 'TABLE TENNIS ADMIN UI',
+            'darts-admin' => 'DARTS ADMIN UI',
+            'volleyball-admin' => 'Volleyball Admin UI',
+            'analytics' => 'analytics',
+        ];
+        
+        if (!isset($sportMap[$sport])) {
+            abort(404);
+        }
+        
+        $actualSport = $sportMap[$sport];
         $allowed = config('legacy.allowed_folders', []);
-        if (! in_array($sport, $allowed, true)) {
+        if (! in_array($actualSport, $allowed, true)) {
             abort(404);
         }
 
+        // Determine default file for this sport
+        $defaultFiles = [
+            'Badminton Admin UI' => 'badminton_admin.php',
+            'Basketball Admin UI' => 'index.php',
+            'TABLE TENNIS ADMIN UI' => 'tabletennis_admin.php',
+            'DARTS ADMIN UI' => 'index.php',
+            'Volleyball Admin UI' => 'volleyball_admin.php',
+            'analytics' => 'index.php',
+        ];
+        
         if ($path === '' || $path === null) {
-            $path = $sport === 'TABLE TENNIS ADMIN UI' ? 'tabletennis_admin.php' : 'index.php';
+            $path = $defaultFiles[$actualSport] ?? 'index.php';
         }
 
         // Basic sanitization
@@ -26,7 +51,7 @@ class LegacyProxyController extends Controller
             abort(400);
         }
 
-        $legacyFile = public_path($sport . '/' . $path);
+        $legacyFile = public_path($actualSport . '/' . $path);
         if (! file_exists($legacyFile) || ! is_file($legacyFile)) {
             abort(404);
         }
