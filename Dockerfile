@@ -45,8 +45,16 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
   && composer install --no-dev --optimize-autoloader --no-interaction \
   && rm -rf /root/.composer/cache
 
-# Set proper permissions
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Set proper permissions (all public files and storage)
+RUN chown -R www-data:www-data /var/www/html/public /var/www/html/storage /var/www/html/bootstrap/cache \
+  && chmod -R 755 /var/www/html/public \
+  && chmod -R 755 /var/www/html/public/Basketball\ Admin\ UI \
+  && chmod -R 755 /var/www/html/public/Badminton\ Admin\ UI \
+  && chmod -R 755 /var/www/html/public/DARTS\ ADMIN\ UI \
+  && chmod -R 755 /var/www/html/public/TABLE\ TENNIS\ ADMIN\ UI \
+  && chmod -R 755 /var/www/html/public/Volleyball\ Admin\ UI \
+  && chmod -R 755 /var/www/html/public/analytics \
+  && find /var/www/html/public -type f -exec chmod 644 {} \;
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
