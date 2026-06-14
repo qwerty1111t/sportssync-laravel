@@ -68,6 +68,38 @@ function currentUser(): ?array {
         return $u;
     }
 
+    // Fallback: check SS_USER_ID session key set by SuperadminController.
+    // The SuperadminController always writes $_SESSION['SS_USER_ID'] (as a
+    // string) but may skip $_SESSION['user_id'] when $userId is falsy.
+    // Accepting this key here lets superadmin users reach legacy pages.
+    if (!empty($_SESSION['SS_USER_ID'])) {
+        $uid = 0;
+        $rawUid = $_SESSION['SS_USER_ID'];
+        if (is_numeric($rawUid)) {
+            $uid = (int) $rawUid;
+        } elseif (is_string($rawUid) && preg_match('/^\d+$/', $rawUid)) {
+            $uid = (int) $rawUid;
+        }
+        if ($uid > 0) {
+            global $pdo;
+            if (!$pdo) return null;
+            try {
+                $stmt = $pdo->prepare('SELECT id, username, email, role, display_name, is_active FROM users WHERE id = ? LIMIT 1');
+                $stmt->execute([$uid]);
+                $u = $stmt->fetch();
+                if ($u && $u['is_active']) {
+                    // Backwards-compat: treat legacy 'scorekeeper' role as 'admin'
+                    if (!empty($u['role']) && $u['role'] === 'scorekeeper') {
+                        $u['role'] = 'admin';
+                    }
+                    return $u;
+                }
+            } catch (Throwable $_) {
+                // Fall through to cookie check
+            }
+        }
+    }
+
     // Fallback: accept lightweight legacy cookies set by Laravel login
     // (SS_USER_ID, SS_ROLE). This allows AJAX requests that hit public
     // legacy endpoints directly to be authorized when the browser has
