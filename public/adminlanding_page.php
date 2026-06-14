@@ -2,15 +2,21 @@
 // ============================================================
 // adminlanding_page.php — SportSync Admin Landing Page
 // ============================================================
+// NOTE: This file is deprecated. The Superadmin dashboard is now served
+// via Laravel Blade view (resources/views/superadmin/dashboard.blade.php)
+// handled by SuperadminController. Direct access to this file still works
+// for legacy purposes but will redirect to the Laravel dashboard.
 require_once __DIR__ . '/auth.php';
 
-if (!function_exists('currentUser')) {
-    http_response_code(500);
-    echo '<h1>Server configuration error</h1>';
-    exit;
+// Use the _legacyCurrentUser function if available (from app/Legacy/auth.php)
+// otherwise fall back to requireLogin which handles the redirect
+if (function_exists('_legacyCurrentUser')) {
+    $user = _legacyCurrentUser();
+} elseif (function_exists('requireLogin')) {
+    try { $user = requireLogin(); } catch (Throwable $_) { $user = null; }
+} else {
+    $user = null;
 }
-
- $user = currentUser();
  if (!$user) {
   // Redirect direct web access to the Laravel superadmin login (legacy wrapper
   // accesses this file inside Laravel and will not hit this branch).

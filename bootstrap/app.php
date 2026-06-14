@@ -22,7 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
         );
         
         // Register middleware aliases
+        // NOTE: 'legacy.session' is only used for legacy public/* PHP proxy
+        // routes (via LegacyProxyController). The SuperAdmin auth system
+        // uses ONLY Laravel Auth facade with 'auth' and 'superadmin'.
         $middleware->alias([
+            'legacy.session' => \App\Http\Middleware\LegacySessionMiddleware::class,
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
             'ensure.role' => \App\Http\Middleware\EnsureRole::class,
         ]);

@@ -1,120 +1,60 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class SuperadminController extends Controller
 {
-    // DO NOT apply middleware in constructor - it's already applied in routes/web.php
-    // Applying it here causes duplicate middleware execution and redirect loops
-    
+    /**
+     * Display the superadmin dashboard.
+     *
+     * This controller ONLY uses Laravel's Auth facade. No $_SESSION,
+     * $_COOKIE, SS_ROLE, SS_USER_ID, or native PHP session functions.
+     * The 'superadmin' middleware (not 'legacy.session') ensures role access.
+     */
     public function index(Request $request)
     {
+        /** @var \App\Models\User $user */
         $user = Auth::user();
-        
-        // Get role from multiple sources (Laravel Auth, session, or cookie)
-        $role = null;
-        $userId = null;
-        
-        if ($user) {
-            $role = $user->role;
-            $userId = $user->id;
-        } else {
-            // Try session/cookie if Laravel Auth user is not available
-            $role = session('SS_ROLE') ?? session('user_role') ?? $_SESSION['SS_ROLE'] ?? $_SESSION['user_role'] ?? $_COOKIE['SS_ROLE'] ?? null;
-            $userId = session('user_id') ?? $_SESSION['user_id'] ?? intval($_COOKIE['SS_USER_ID'] ?? 0) ?? null;
-        }
-        
-        // Log entry for debugging
-        \Illuminate\Support\Facades\Log::info('[SuperadminController] Dashboard access', [
-            'user_id' => $userId,
-            'role' => $role,
-            'ss_role' => session('SS_ROLE'),
-            'path' => $request->path(),
-            'authenticated' => Auth::check(),
-            'has_laravel_user' => $user ? 'yes' : 'no',
-        ]);
-        
-        // Verify user is actually superadmin (middleware should have done this, but double-check)
-        if (!$role || strtolower((string)$role) !== 'superadmin') {
-            \Illuminate\Support\Facades\Log::warning('[SuperadminController] Non-superadmin access attempt', [
-                'user_id' => $userId,
-                'role' => $role,
-                'authenticated' => Auth::check(),
-            ]);
-            abort(403, 'Superadmin access required');
-        }
-        
-        // Set session variables for legacy PHP compatibility
-        if ($userId) {
-            $request->session()->put('user_id', $userId);
-            $_SESSION['user_id'] = $userId;
-        }
-        $request->session()->put('user_role', strtolower((string)$role));
-        $request->session()->put('role', strtolower((string)$role));
-        $request->session()->put('SS_ROLE', strtolower((string)$role));
-        $_SESSION['user_role'] = strtolower((string)$role);
-        $_SESSION['role'] = strtolower((string)$role);
-        $_SESSION['SS_ROLE'] = strtolower((string)$role);
-        
-        if ($userId) {
-            $request->session()->put('SS_USER_ID', (string)$userId);
-            $_SESSION['SS_USER_ID'] = (string)$userId;
-        }
-        
-        if ($user?->username) {
-            $request->session()->put('username', $user->username);
-            $_SESSION['username'] = $user->username;
-        }
-        
-        // Serve the legacy admin landing page content
-        $legacyFile = public_path('adminlanding_page.php');
-        if (! file_exists($legacyFile) || ! is_file($legacyFile)) {
-            \Illuminate\Support\Facades\Log::error('[SuperadminController] Admin dashboard file not found', [
-                'file' => $legacyFile,
-            ]);
-            abort(404, 'Admin dashboard not found');
-        }
 
-        if (! defined('LARAVEL_WRAPPER')) define('LARAVEL_WRAPPER', true);
-        
-        chdir(public_path());
-        ob_start();
-        try {
-            include $legacyFile;
-            $content = ob_get_clean();
-            \Illuminate\Support\Facades\Log::debug('[SuperadminController] Dashboard served successfully', [
-                'user_id' => Auth::id(),
-                'content_length' => strlen($content),
-            ]);
-        } catch (\Throwable $e) {
-            if (ob_get_level()) ob_end_clean();
-            \Illuminate\Support\Facades\Log::error('[SuperadminController] Dashboard rendering error', [
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-            abort(500, 'Admin dashboard error: ' . $e->getMessage());
-        }
-        
-        return response($content)->header('Content-Type', 'text/html; charset=utf-8');
+        // Fetch recent users for the management table
+        $users = User::orderBy('id', 'desc')->limit(200)->get();
+
+        return view('superadmin.dashboard', [
+            'users' => $users,
+        ]);
     }
 
+    /**
+     * List all users (JSON endpoint for AJAX).
+     */
     public function users(Request $request)
     {
-        $users = \App\Models\User::orderBy('id', 'desc')->limit(200)->get();
+        $users = User::orderBy('id', 'desc')->limit(200)->get();
         return view('superadmin.users', ['users' => $users]);
     }
 
+    /**
+     * Promote a user to superadmin role.
+     */
     public function promote(Request $request)
     {
         $id = (int) $request->input('user_id');
-        if (!$id) return redirect()->back()->with('error', 'Missing user id');
-        $u = \App\Models\User::find($id);
-        if (!$u) return redirect()->back()->with('error', 'User not found');
+        if (!$id) {
+            return redirect()->back()->with('error', 'Missing user id');
+        }
+
+        $u = User::find($id);
+        if (!$u) {
+            return redirect()->back()->with('error', 'User not found');
+        }
+
         $u->role = 'superadmin';
         $u->save();
+
         return redirect()->back()->with('success', 'User promoted to superadmin');
     }
 }

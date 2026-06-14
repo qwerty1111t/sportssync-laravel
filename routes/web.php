@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuperadminController;
+use App\Http\Middleware\PreventBackHistory;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 
 Route::get('/', function () {
@@ -13,9 +13,10 @@ Route::get('/', function () {
 });
 
 // Legacy routes are defined in `routes/legacy.php` and are proxied through
-// Laravel so that authentication and the `legacy.session` middleware run.
-// This ensures legacy pages execute within the Laravel request lifecycle
-// and receive server-side session/cookie injection for compatibility.
+// Laravel so that authentication middleware (auth, ensure.role) runs.
+// The 'legacy.session' middleware has been REMOVED. Legacy PHP files that need
+// SS_USER_ID/SS_ROLE compatibility cookies receive them via the dedicated
+// LegacySessionMiddleware (if still needed for public/analytics/ endpoints).
 
 Route::get('/about', function () {
     return view('about');
@@ -48,10 +49,6 @@ Route::get('/dashboard', function (Request $request) {
     
     // If superadmin, they should use /superadmin/dashboard instead
     if ($user && strtolower((string)($user->role ?? '')) === 'superadmin') {
-        \Illuminate\Support\Facades\Log::info('[Dashboard Route] Superadmin visiting /dashboard, redirecting to /superadmin/dashboard', [
-            'user_id' => $user->id,
-            'role' => $user->role,
-        ]);
         return redirect('/superadmin/dashboard');
     }
     
@@ -70,15 +67,10 @@ Route::get('/dashboard', function (Request $request) {
         }
     }
     
-    \Illuminate\Support\Facades\Log::debug('[Dashboard Route] Serving dashboard', [
-        'user_id' => $user?->id,
-        'role' => $user?->role,
-        'path' => $request->path(),
-    ]);
     return view('dashboard');
-})->middleware(['auth', 'verified', \App\Http\Middleware\PreventBackHistory::class])->name('dashboard');
+})->middleware(['auth', 'verified', PreventBackHistory::class])->name('dashboard');
 
-Route::middleware(['auth', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
+Route::middleware(['auth', PreventBackHistory::class])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -123,12 +115,12 @@ Route::middleware(['auth', 'ensure.role:superadmin'])
     });
 });
 
-// Superadmin routes: full access, protected by superadmin middleware (which validates SS_ROLE session/cookie)
-// NOTE: Do NOT use 'auth' middleware here - it checks Auth::check() (Laravel Auth system)
-// which may not be synced with session values. Use 'superadmin' middleware instead,
-// which validates using session('SS_ROLE') and $_COOKIE['SS_ROLE'] directly.
-Route::middleware(['legacy.session', 'superadmin', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
-    // Main superadmin dashboard (legacy admin landing page)
+// Superadmin routes: protected by 'auth' + 'superadmin' middleware
+// 'auth' middleware ensures Laravel Auth::check() passes
+// 'superadmin' middleware ensures role = 'superadmin' (returns 403 for wrong roles)
+// The legacy.session middleware has been REMOVED - no legacy auth fallback needed.
+Route::middleware(['auth', 'superadmin', PreventBackHistory::class])->group(function () {
+    // Main superadmin dashboard (Laravel Blade view)
     Route::get('/superadmin/dashboard', [SuperadminController::class, 'index'])->name('superadmin.dashboard');
     
     // Legacy redirect for backwards compatibility
@@ -194,8 +186,6 @@ Route::get('/legacy-logout', function (Request $request) {
 
     // Remove legacy compatibility cookies
     try {
-        Cookie::queue(Cookie::forget('SS_USER_ID'));
-        Cookie::queue(Cookie::forget('SS_ROLE'));
         setcookie('SS_USER_ID', '', time() - 3600, '/');
         setcookie('SS_ROLE', '', time() - 3600, '/');
     } catch (\Throwable $_) { }
