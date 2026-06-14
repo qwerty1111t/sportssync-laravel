@@ -46,16 +46,25 @@ class LoginRequest extends FormRequest
         $password = $this->input('password');
 
         $attempted = false;
-        // Try login by email
-        if (Auth::attempt(['email' => $identifier, 'password' => $password], $this->boolean('remember'))) {
-            $attempted = true;
-        }
-        // If not, try login by username, then fallback to name
-        if (! $attempted && Auth::attempt(['username' => $identifier, 'password' => $password], $this->boolean('remember'))) {
-            $attempted = true;
-        }
-        if (! $attempted && Auth::attempt(['name' => $identifier, 'password' => $password], $this->boolean('remember'))) {
-            $attempted = true;
+        try {
+            // Try login by email
+            if (Auth::attempt(['email' => $identifier, 'password' => $password], $this->boolean('remember'))) {
+                $attempted = true;
+            }
+            // If not, try login by username, then fallback to name
+            if (! $attempted && Auth::attempt(['username' => $identifier, 'password' => $password], $this->boolean('remember'))) {
+                $attempted = true;
+            }
+            if (! $attempted && Auth::attempt(['name' => $identifier, 'password' => $password], $this->boolean('remember'))) {
+                $attempted = true;
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SUPERADMIN LOGIN ERROR - Auth::attempt failed', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            throw $e;
         }
 
         if (! $attempted) {
@@ -69,21 +78,30 @@ class LoginRequest extends FormRequest
         RateLimiter::clear($this->throttleKey());
 
         // Enforce account status: block login if account is pending/rejected/inactive.
-        $user = Auth::user();
-        if ($user) {
-            $status = strtolower((string)($user->status ?? ''));
-            if ($status === 'pending') {
-                Auth::guard()->logout();
-                throw ValidationException::withMessages([
-                    'identifier' => 'Your account is pending approval by a superadmin. You cannot log in until it is approved.',
-                ]);
+        try {
+            $user = Auth::user();
+            if ($user) {
+                $status = strtolower((string)($user->status ?? ''));
+                if ($status === 'pending') {
+                    Auth::guard()->logout();
+                    throw ValidationException::withMessages([
+                        'identifier' => 'Your account is pending approval by a superadmin. You cannot log in until it is approved.',
+                    ]);
+                }
+                if ($status === 'rejected' || (isset($user->is_active) && !(int)$user->is_active)) {
+                    Auth::guard()->logout();
+                    throw ValidationException::withMessages([
+                        'identifier' => 'Account not approved.',
+                    ]);
+                }
             }
-            if ($status === 'rejected' || (isset($user->is_active) && !(int)$user->is_active)) {
-                Auth::guard()->logout();
-                throw ValidationException::withMessages([
-                    'identifier' => 'Account not approved.',
-                ]);
-            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('SUPERADMIN LOGIN ERROR - User status check failed', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            throw $e;
         }
     }
 
