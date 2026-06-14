@@ -44,6 +44,11 @@ class LegacyProxyController extends Controller
         if ($path === '' || $path === null) {
             $path = $defaultFiles[$actualSport] ?? 'index.php';
         }
+        
+        // Map viewer routes to actual PHP files
+        if ($path === 'viewer' && $actualSport === 'DARTS ADMIN UI') {
+            $path = 'viewer.php';
+        }
 
         // Basic sanitization
         $path = str_replace("\0", '', $path);
