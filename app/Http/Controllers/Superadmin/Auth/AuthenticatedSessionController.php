@@ -82,15 +82,13 @@ class AuthenticatedSessionController extends Controller
             }
 
             // Set legacy compatibility cookies for /public legacy PHP files.
+            // Use ONLY Cookie::queue() — raw setcookie() calls cause duplicate
+            // Set-Cookie headers that confuse browsers and can cause header
+            // overflow with cookie session driver.
             try {
                 $minutes = 60 * 8;
                 \Illuminate\Support\Facades\Cookie::queue('SS_USER_ID', (string) intval($user->id), $minutes);
                 \Illuminate\Support\Facades\Cookie::queue('SS_ROLE', $user->role ?? 'viewer', $minutes);
-                try {
-                    $expire = time() + ($minutes * 60);
-                    setcookie('SS_USER_ID', (string) intval($user->id), $expire, '/');
-                    setcookie('SS_ROLE', $user->role ?? 'viewer', $expire, '/');
-                } catch (\Throwable $_) {}
             } catch (\Throwable $_) {}
 
             // Resolve ?next= — support sport: keys and legacy raw paths.

@@ -71,8 +71,25 @@ class SuperAdminMiddleware
             Log::debug('[SuperAdminMiddleware] Got role from request->user()', ['role' => $role]);
         }
 
-        // 3) Legacy PHP session / lightweight cookie fallback (SS_ROLE)
-        // Check multiple session variable names for user_id
+        // 3) Check Laravel session before native PHP session (database session driver)
+        // With SESSION_DRIVER=database, session() reads from MySQL, not $_SESSION
+        if (!$role) {
+            $laravelSessionRole = session('SS_ROLE') ?? session('user_role') ?? session('role') ?? null;
+            $laravelSessionUserId = session('user_id') ?? session('SS_USER_ID') ?? null;
+            if ($laravelSessionRole) {
+                $role = $laravelSessionRole;
+                if ($laravelSessionUserId) {
+                    $userId = (int)$laravelSessionUserId;
+                }
+                Log::debug('[SuperAdminMiddleware] Got role from Laravel session', ['role' => $role, 'user_id' => $userId]);
+            } else {
+                Log::debug('[SuperAdminMiddleware] Laravel session has no role data', [
+                    'session_keys' => array_keys(session()->all() ?? []),
+                ]);
+            }
+        }
+
+        // 4) Legacy PHP native session fallback (for native PHP session compat)
         if (!$role) {
             $sessionUserId = $_SESSION['user_id'] ?? $_SESSION['SS_USER_ID'] ?? null;
             if ($sessionUserId) {
@@ -80,47 +97,64 @@ class SuperAdminMiddleware
                 // Get role from session - prefer SS_ROLE (set by login controller / SuperadminController)
                 if (!empty($_SESSION['SS_ROLE'])) {
                     $role = $_SESSION['SS_ROLE'];
-                    Log::debug('[SuperAdminMiddleware] Got role from session SS_ROLE', ['role' => $role, 'user_id' => $userId]);
+                    Log::debug('[SuperAdminMiddleware] Got role from native session SS_ROLE', ['role' => $role, 'user_id' => $userId]);
                 } elseif (!empty($_SESSION['user_role'])) {
                     $role = $_SESSION['user_role'];
-                    Log::debug('[SuperAdminMiddleware] Got role from session user_role', ['role' => $role, 'user_id' => $userId]);
+                    Log::debug('[SuperAdminMiddleware] Got role from native session user_role', ['role' => $role, 'user_id' => $userId]);
                 } elseif (!empty($_SESSION['role'])) {
                     $role = $_SESSION['role'];
-                    Log::debug('[SuperAdminMiddleware] Got role from session role', ['role' => $role, 'user_id' => $userId]);
+                    Log::debug('[SuperAdminMiddleware] Got role from native session role', ['role' => $role, 'user_id' => $userId]);
                 } else {
                     // Try to fetch from database
                     try {
                         $dbRole = DB::table('users')->where('id', $userId)->value('role');
                         if ($dbRole) {
                             $role = $dbRole;
-                            Log::debug('[SuperAdminMiddleware] Got role from DB via session user_id', ['role' => $role, 'user_id' => $userId]);
+                            Log::debug('[SuperAdminMiddleware] Got role from DB via native session user_id', ['role' => $role, 'user_id' => $userId]);
                         }
                     } catch (\Throwable $_) {
                         // Database unavailable
                     }
                 }
             }
-            
-            // Fallback to cookies if no session user found (no $_SESSION['user_id'] gate)
-            // This supports the scenario where the Laravel session expired but the browser
-            // still sends SS_ROLE/SS_USER_ID cookies from a previous login.
-            if (!$role) {
-                // Check $_COOKIE superglobal (sent by browser, may be modified by LegacySessionMiddleware)
-                $cookieRole = $_COOKIE['SS_ROLE'] ?? null;
-                // Also check request->cookie() as a direct source from the HTTP request
-                if (!$cookieRole) {
+        }
+
+        // 5) Cookie fallback (no session found — browser still has SS cookies)
+        // Check both $_COOKIE (native PHP) and $request->cookie() (Laravel)
+        // $request->cookie() reads from the Laravel cookie jar (decrypted if EncryptCookies ran)
+        if (!$role) {
+            $cookieRole = $_COOKIE['SS_ROLE'] ?? null;
+            try {
+                $cookieRole = $cookieRole ?: $request->cookie('SS_ROLE');
+            } catch (\Throwable $_) {}
+            if (!$cookieRole) {
+                // Last resort: check raw cookies from the request header
+                try {
+                    $rawCookies = $request->server('HTTP_COOKIE', '');
+                    if (preg_match('/(?:^|;)\s*SS_ROLE\s*=\s*([^;]+)/i', $rawCookies, $m)) {
+                        $cookieRole = trim($m[1]);
+                        Log::debug('[SuperAdminMiddleware] Got role from raw cookie header', ['role' => $cookieRole]);
+                    }
+                } catch (\Throwable $_) {}
+            }
+            if ($cookieRole) {
+                $role = urldecode($cookieRole);
+                $cookieUid = $_COOKIE['SS_USER_ID'] ?? null;
+                try {
+                    $cookieUid = $cookieUid ?: $request->cookie('SS_USER_ID');
+                } catch (\Throwable $_) {}
+                if (!$cookieUid) {
                     try {
-                        $cookieRole = $request->cookie('SS_ROLE');
+                        $rawCookies = $request->server('HTTP_COOKIE', '');
+                        if (preg_match('/(?:^|;)\s*SS_USER_ID\s*=\s*([^;]+)/i', $rawCookies, $m)) {
+                            $cookieUid = (int)trim($m[1]);
+                        }
                     } catch (\Throwable $_) {}
                 }
-                if ($cookieRole) {
-                    $role = urldecode($cookieRole);
-                    $cookieUid = $_COOKIE['SS_USER_ID'] ?? $request->cookie('SS_USER_ID') ?? null;
-                    if ($cookieUid) {
-                        $userId = (int)$cookieUid;
-                    }
-                    Log::debug('[SuperAdminMiddleware] Got role from cookie', ['role' => $role, 'user_id' => $userId]);
+                if ($cookieUid) {
+                    $userId = (int)$cookieUid;
                 }
+                Log::debug('[SuperAdminMiddleware] Got role from cookie', ['role' => $role, 'user_id' => $userId]);
             }
         }
 

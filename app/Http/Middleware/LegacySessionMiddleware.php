@@ -39,6 +39,68 @@ class LegacySessionMiddleware
                 // the same request will see the values.
                 $_COOKIE['SS_USER_ID'] = (string) intval($user->id);
                 $_COOKIE['SS_ROLE'] = $user->role ?? 'viewer';
+                
+                Log::debug('LegacySessionMiddleware: Populated from Auth::user()', [
+                    'user_id' => $user->id,
+                    'role' => $user->role,
+                ]);
+            } else {
+                // Auth::check() returned false. Try to populate $_SESSION from
+                // the Laravel database session store (session() helper) and
+                // from the incoming request cookies.
+                // This handles the case where the browser redirects after login
+                // and the Laravel session cookie is present with SS_ROLE data
+                // but Auth::check() hasn't been fully established yet.
+                try {
+                    $sessionRole = session('SS_ROLE') ?? session('user_role') ?? session('role') ?? null;
+                    $sessionUserId = session('SS_USER_ID') ?? session('user_id') ?? null;
+                    
+                    if ($sessionRole) {
+                        $_SESSION['SS_ROLE'] = $sessionRole;
+                        $_SESSION['role'] = $sessionRole;
+                        $_SESSION['user_role'] = $sessionRole;
+                        $_COOKIE['SS_ROLE'] = $sessionRole;
+                        
+                        if ($sessionUserId) {
+                            $_SESSION['user_id'] = (int)$sessionUserId;
+                            $_SESSION['SS_USER_ID'] = (string)$sessionUserId;
+                            $_COOKIE['SS_USER_ID'] = (string)$sessionUserId;
+                        }
+                        
+                        Log::debug('LegacySessionMiddleware: Populated from Laravel session', [
+                            'role' => $sessionRole,
+                            'user_id' => $sessionUserId,
+                        ]);
+                    }
+                } catch (\Throwable $e) {
+                    Log::debug('LegacySessionMiddleware: Laravel session fallback failed: ' . $e->getMessage());
+                }
+                
+                // Also try to populate from cookies if not already populated
+                if (empty($_SESSION['SS_ROLE'])) {
+                    try {
+                        $cookieRole = $_COOKIE['SS_ROLE'] ?? $request->cookie('SS_ROLE') ?? null;
+                        $cookieUserId = $_COOKIE['SS_USER_ID'] ?? $request->cookie('SS_USER_ID') ?? null;
+                        
+                        if ($cookieRole) {
+                            $_SESSION['SS_ROLE'] = urldecode($cookieRole);
+                            $_SESSION['role'] = urldecode($cookieRole);
+                            $_SESSION['user_role'] = urldecode($cookieRole);
+                            
+                            if ($cookieUserId) {
+                                $_SESSION['user_id'] = (int)$cookieUserId;
+                                $_SESSION['SS_USER_ID'] = (string)$cookieUserId;
+                            }
+                            
+                            Log::debug('LegacySessionMiddleware: Populated from cookies', [
+                                'role' => $cookieRole,
+                                'user_id' => $cookieUserId,
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        Log::debug('LegacySessionMiddleware: Cookie fallback failed: ' . $e->getMessage());
+                    }
+                }
             }
             // IMPORTANT: Do NOT unset $_COOKIE values when user is not authenticated.
             // The browser still sends SS_ROLE/SS_USER_ID cookies from a previous login.
