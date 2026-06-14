@@ -15,6 +15,13 @@ header('Access-Control-Allow-Origin: *');
 
 require_once __DIR__ . '/../db.php';
 
+// Guard: if PDO connection failed, return error immediately
+if (!isset($pdo) || !$pdo) {
+    http_response_code(500);
+    echo json_encode(['success' => false, 'error' => 'Database connection failed. Check server logs for details.']);
+    exit;
+}
+
 // Guard: ensure universal_players exists
 try {
     if (!$pdo->query("SHOW TABLES LIKE 'universal_players'")->fetch()) {
