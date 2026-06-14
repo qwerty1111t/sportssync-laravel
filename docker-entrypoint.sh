@@ -45,7 +45,11 @@ DB_DATABASE=${DB_DATABASE}
 DB_USERNAME=${DB_USERNAME}
 DB_PASSWORD=${DB_PASSWORD}
 
-SESSION_DRIVER=cookie
+# database driver is required — cookie driver is incompatible with heavy
+# session writes (5+ session keys per request) and causes PHP-FPM crashes
+# due to header overflow when regenerate() + Cookie::queue() + setcookie()
+# all fire simultaneously.
+SESSION_DRIVER=database
 SESSION_SECURE_COOKIES=true
 SESSION_DOMAIN=${RAILWAY_PUBLIC_DOMAIN:-.}
 SESSION_LIFETIME=120
