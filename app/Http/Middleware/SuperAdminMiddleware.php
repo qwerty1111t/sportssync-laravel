@@ -31,21 +31,23 @@ class SuperAdminMiddleware
     public function handle(Request $request, Closure $next)
     {
         $role = null;
+        $userId = null;
 
         // 1) Try Laravel authenticated user (prefer DB-stored role when possible)
         try {
             if (Auth::guard('web')->check()) {
                 $user = Auth::guard('web')->user();
                 if ($user) {
-                    if (isset($user->id)) {
+                    $userId = $user->id ?? null;
+                    if ($userId) {
                         try {
-                            $dbRole = DB::table('users')->where('id', $user->id)->value('role');
+                            $dbRole = DB::table('users')->where('id', $userId)->value('role');
                             if ($dbRole) {
                                 $role = $dbRole;
-                                Log::debug('[SuperAdminMiddleware] Got role from DB', ['role' => $role, 'user_id' => $user->id]);
+                                Log::debug('[SuperAdminMiddleware] Got role from DB', ['role' => $role, 'user_id' => $userId]);
                             } elseif (isset($user->role)) {
                                 $role = $user->role;
-                                Log::debug('[SuperAdminMiddleware] Got role from user model', ['role' => $role, 'user_id' => $user->id]);
+                                Log::debug('[SuperAdminMiddleware] Got role from user model', ['role' => $role, 'user_id' => $userId]);
                             }
                         } catch (\Throwable $e) {
                             $role = $user->role ?? null;
@@ -65,32 +67,33 @@ class SuperAdminMiddleware
         if (!$role && $request->user()) {
             $ruser = $request->user();
             $role = $ruser->role ?? $role;
+            $userId = $ruser->id ?? $userId;
             Log::debug('[SuperAdminMiddleware] Got role from request->user()', ['role' => $role]);
         }
 
-        // 3) Laravel session() - more reliable than raw $_SESSION
+        // 3) Legacy PHP session / lightweight cookie fallback (SS_ROLE)
+        // Check multiple session variable names for user_id
         if (!$role) {
-            $role = session('SS_ROLE') ?? session('role') ?? session('user_role') ?? null;
-            if ($role) {
-                Log::debug('[SuperAdminMiddleware] Got role from Laravel session()', ['role' => $role]);
-            }
-        }
-
-        // 4) Raw $_SESSION / PHP session fallback
-        if (!$role) {
-            if (!empty($_SESSION['user_id'])) {
-                if (!empty($_SESSION['user_role'])) {
-                    $role = $_SESSION['user_role'];
-                } elseif (!empty($_SESSION['SS_ROLE'])) {
+            $sessionUserId = $_SESSION['user_id'] ?? $_SESSION['SS_USER_ID'] ?? null;
+            if ($sessionUserId) {
+                $userId = (int)$sessionUserId;
+                // Get role from session - prefer SS_ROLE (set by login controller / SuperadminController)
+                if (!empty($_SESSION['SS_ROLE'])) {
                     $role = $_SESSION['SS_ROLE'];
+                    Log::debug('[SuperAdminMiddleware] Got role from session SS_ROLE', ['role' => $role, 'user_id' => $userId]);
+                } elseif (!empty($_SESSION['user_role'])) {
+                    $role = $_SESSION['user_role'];
+                    Log::debug('[SuperAdminMiddleware] Got role from session user_role', ['role' => $role, 'user_id' => $userId]);
                 } elseif (!empty($_SESSION['role'])) {
                     $role = $_SESSION['role'];
+                    Log::debug('[SuperAdminMiddleware] Got role from session role', ['role' => $role, 'user_id' => $userId]);
                 } else {
+                    // Try to fetch from database
                     try {
-                        $userId = (int)$_SESSION['user_id'];
                         $dbRole = DB::table('users')->where('id', $userId)->value('role');
                         if ($dbRole) {
                             $role = $dbRole;
+                            Log::debug('[SuperAdminMiddleware] Got role from DB via session user_id', ['role' => $role, 'user_id' => $userId]);
                         }
                     } catch (\Throwable $_) {
                         // Database unavailable
@@ -98,18 +101,30 @@ class SuperAdminMiddleware
                 }
             }
             
-            if ($role) {
-                Log::debug('[SuperAdminMiddleware] Got role from $_SESSION', ['role' => $role]);
+            // Fallback to cookies if no session user found (no $_SESSION['user_id'] gate)
+            // This supports the scenario where the Laravel session expired but the browser
+            // still sends SS_ROLE/SS_USER_ID cookies from a previous login.
+            if (!$role) {
+                // Check $_COOKIE superglobal (sent by browser, may be modified by LegacySessionMiddleware)
+                $cookieRole = $_COOKIE['SS_ROLE'] ?? null;
+                // Also check request->cookie() as a direct source from the HTTP request
+                if (!$cookieRole) {
+                    try {
+                        $cookieRole = $request->cookie('SS_ROLE');
+                    } catch (\Throwable $_) {}
+                }
+                if ($cookieRole) {
+                    $role = urldecode($cookieRole);
+                    $cookieUid = $_COOKIE['SS_USER_ID'] ?? $request->cookie('SS_USER_ID') ?? null;
+                    if ($cookieUid) {
+                        $userId = (int)$cookieUid;
+                    }
+                    Log::debug('[SuperAdminMiddleware] Got role from cookie', ['role' => $role, 'user_id' => $userId]);
+                }
             }
         }
 
-        // 5) Cookie fallback
-        if (!$role && !empty($_COOKIE['SS_ROLE'])) {
-            $role = urldecode($_COOKIE['SS_ROLE']);
-            Log::debug('[SuperAdminMiddleware] Got role from $_COOKIE', ['role' => $role]);
-        }
-
-        // Normalize role
+        // Normalize role (handle array / JSON strings and case-insensitivity)
         $normalized = '';
         if (is_array($role)) {
             $normalized = strtolower(trim((string)($role[0] ?? $role['role'] ?? '')));
@@ -134,39 +149,49 @@ class SuperAdminMiddleware
             $normalized = 'admin';
         }
 
+        // GUARD: Detect redirect loops by checking if we're already in the superadmin namespace
         $currentPath = $request->path();
+        $isSuperadminPath = str_starts_with($currentPath, 'superadmin');
         
-        Log::debug('[SuperAdminMiddleware] Role detection complete', [
+        Log::debug('[SuperAdminMiddleware] Final role check', [
             'raw_role' => $role,
             'normalized_role' => $normalized,
             'auth_check' => Auth::check(),
-            'user_id' => Auth::id() ?? session('user_id') ?? $_SESSION['user_id'] ?? null,
+            'user_id' => $userId,
             'path' => $currentPath,
+            'is_superadmin_path' => $isSuperadminPath,
+            'session_user_id' => $_SESSION['user_id'] ?? null,
+            'session_ss_role' => $_SESSION['SS_ROLE'] ?? null,
+            'cookie_ss_role' => $_COOKIE['SS_ROLE'] ?? null,
         ]);
 
-        // SUCCESS: Superadmin access granted
+        // SUCCESS: Allow superadmin users through
         if ($normalized === 'superadmin') {
-            Log::info('[SuperAdminMiddleware] ✓ SUPERADMIN ACCESS GRANTED', [
-                'normalized_role' => $normalized,
+            Log::info('[SuperAdminMiddleware] SUPERADMIN ACCESS GRANTED', [
+                'user_id' => $userId,
                 'path' => $currentPath,
             ]);
             return $next($request);
         }
 
-        // FAIL: No role found - redirect to login (unless already at login page)
+        // FAIL: No authentication found from any source
         if (empty($role)) {
-            Log::warning('[SuperAdminMiddleware] ✗ NO ROLE FOUND - redirecting to login', [
+            Log::warning('[SuperAdminMiddleware] NO AUTHENTICATION - redirecting to login', [
                 'path' => $currentPath,
+                'auth_check' => Auth::check(),
+                'session_user_id' => $_SESSION['user_id'] ?? null,
             ]);
             
+            // Don't redirect if already at login page (prevent loops)
             if (!str_contains($currentPath, 'login') && !str_contains($currentPath, 'password')) {
                 return redirect('/superadmin/login');
             }
             return $next($request);
         }
 
-        // FAIL: Wrong role - deny access
-        Log::warning('[SuperAdminMiddleware] ✗ WRONG ROLE - access denied', [
+        // FAIL: Authenticated but wrong role
+        Log::warning('[SuperAdminMiddleware] WRONG ROLE - denying access', [
+            'user_id' => $userId,
             'role_found' => $normalized,
             'path' => $currentPath,
         ]);

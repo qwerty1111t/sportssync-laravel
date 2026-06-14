@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Auth;
 Route::prefix('superadmin')->name('superadmin.')->group(function () {
     // Superadmin login - allow access if already authenticated (as superadmin)
     Route::middleware(['legacy.session', \App\Http\Middleware\PreventBackHistory::class])->group(function () {
-        Route::get('login', function () {
+        Route::get('login', function (\Illuminate\Http\Request $request) {
             // Check if already authenticated as superadmin (check both Laravel Auth AND session/cookie)
             $isAuthenticatedSuperadmin = false;
             
@@ -26,7 +26,7 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
             // Check session/cookie values if Laravel Auth didn't confirm
             if (!$isAuthenticatedSuperadmin) {
                 $sessionRole = session('SS_ROLE') ?? $_SESSION['SS_ROLE'] ?? null;
-                $cookieRole = $_COOKIE['SS_ROLE'] ?? null;
+                $cookieRole = $_COOKIE['SS_ROLE'] ?? $request->cookie('SS_ROLE') ?? null;
                 
                 if ($sessionRole && strtolower((string)$sessionRole) === 'superadmin') {
                     $isAuthenticatedSuperadmin = true;
@@ -36,8 +36,10 @@ Route::prefix('superadmin')->name('superadmin.')->group(function () {
                     ]);
                 } elseif ($cookieRole && strtolower((string)$cookieRole) === 'superadmin') {
                     $isAuthenticatedSuperadmin = true;
+                    // Also check that there's a matching user_id cookie to prevent cookie-only bypass
+                    $cookieUid = $_COOKIE['SS_USER_ID'] ?? $request->cookie('SS_USER_ID') ?? null;
                     \Illuminate\Support\Facades\Log::info('[SuperadminLogin-GET] Already authenticated as superadmin (cookie)', [
-                        'user_id' => session('user_id') ?? $_SESSION['user_id'] ?? null,
+                        'user_id' => $cookieUid,
                         'ss_role' => $cookieRole,
                     ]);
                 }
