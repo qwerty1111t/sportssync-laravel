@@ -82,6 +82,44 @@ class SuperAdminMiddleware
                     $userId = (int)$laravelSessionUserId;
                 }
                 Log::debug('[SuperAdminMiddleware] Got role from Laravel session', ['role' => $role, 'user_id' => $userId]);
+                
+                // Validate: check user actually exists in DB
+                if ($userId) {
+                    try {
+                        $dbUser = DB::table('users')->where('id', $userId)->first();
+                        if (!$dbUser) {
+                            // Stale session — user doesn't exist
+                            Log::warning('[SuperAdminMiddleware] Stale Laravel session — user not found in DB', [
+                                'user_id' => $userId,
+                                'session_role' => $role,
+                            ]);
+                            $role = null;
+                            $userId = null;
+                            try {
+                                session()->forget(['SS_ROLE', 'user_role', 'role', 'user_id', 'SS_USER_ID', 'username']);
+                            } catch (\Throwable $_) {}
+                        } elseif (strtolower((string)($dbUser->role ?? '')) !== 'superadmin') {
+                            // User exists but role changed
+                            Log::warning('[SuperAdminMiddleware] Laravel session role mismatch — DB says ' . $dbUser->role, [
+                                'user_id' => $userId,
+                                'db_role' => $dbUser->role,
+                                'session_role' => $role,
+                            ]);
+                            // Use DB role instead of session role
+                            $role = $dbUser->role;
+                        } else {
+                            Log::debug('[SuperAdminMiddleware] Laravel session validated against DB', [
+                                'user_id' => $userId,
+                                'db_role' => $dbUser->role,
+                            ]);
+                        }
+                    } catch (\Throwable $e) {
+                        Log::warning('[SuperAdminMiddleware] DB validation failed for Laravel session', [
+                            'error' => $e->getMessage(),
+                        ]);
+                        // If DB fails, trust the session data (outage fallback)
+                    }
+                }
             } else {
                 Log::debug('[SuperAdminMiddleware] Laravel session has no role data', [
                     'session_keys' => array_keys(session()->all() ?? []),
