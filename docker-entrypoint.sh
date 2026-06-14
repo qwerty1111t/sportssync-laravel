@@ -50,7 +50,7 @@ DB_PASSWORD=${DB_PASSWORD}
 # due to header overflow when regenerate() + Cookie::queue() + setcookie()
 # all fire simultaneously.
 SESSION_DRIVER=database
-SESSION_SECURE_COOKIES=true
+SESSION_SECURE_COOKIE=${SESSION_SECURE_COOKIE:-true}
 SESSION_DOMAIN=${RAILWAY_PUBLIC_DOMAIN:-.}
 SESSION_LIFETIME=120
 SESSION_ENCRYPT=false
