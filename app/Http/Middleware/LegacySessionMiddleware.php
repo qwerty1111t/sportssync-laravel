@@ -122,16 +122,11 @@ class LegacySessionMiddleware
             if ($user) {
                 Cookie::queue('SS_USER_ID', (string) intval($user->id), $minutes);
                 Cookie::queue('SS_ROLE', $user->role ?? 'viewer', $minutes);
-                // Also set raw (unencrypted) cookies via native PHP so legacy
-                // public PHP files (served outside Laravel) can read them.
-                try {
-                    $expire = time() + ($minutes * 60);
-                    $secure = $request->isSecure();
-                    setcookie('SS_USER_ID', (string) intval($user->id), $expire, '/');
-                    setcookie('SS_ROLE', $user->role ?? 'viewer', $expire, '/');
-                } catch (\Throwable $_) {
-                    // non-fatal if setcookie fails
-                }
+                // NOTE: Removed raw setcookie() calls to avoid duplicate Set-Cookie
+                // headers. Cookie::queue() handles this properly via Laravel's cookie
+                // jar, respecting the encrypted cookie middleware lifecycle.
+                // Raw setcookie() bypasses the middleware and causes duplicate cookies
+                // with conflicting domain/path/httponly attributes.
             }
             // IMPORTANT: Do NOT clear SS_ROLE/SS_USER_ID cookies when user is not
             // authenticated via Laravel Auth. The browser may still have valid
