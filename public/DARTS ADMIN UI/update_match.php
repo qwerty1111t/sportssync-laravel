@@ -15,8 +15,22 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
     echo json_encode(['success'=>false,'message'=>'PHP mysqli extension is not installed']);
     exit;
   }
+  // Fallback: read credentials from environment (Railway) or Laravel config
+  if (function_exists('config')) {
+    $dbHost = config('database.connections.mysql.host', 'localhost');
+    $dbPort = (int)(config('database.connections.mysql.port', 3306));
+    $dbName = config('database.connections.mysql.database', 'sportssync');
+    $dbUser = config('database.connections.mysql.username', 'root');
+    $dbPass = config('database.connections.mysql.password', '');
+  } else {
+    $dbHost = getenv('DB_HOST') ?: 'localhost';
+    $dbPort = (int)(getenv('DB_PORT') ?: 3306);
+    $dbName = getenv('DB_DATABASE') ?: 'sportssync';
+    $dbUser = getenv('DB_USERNAME') ?: 'root';
+    $dbPass = getenv('DB_PASSWORD') ?: '';
+  }
   mysqli_report(MYSQLI_REPORT_OFF);
-  $conn = @new mysqli('localhost', 'root', '', 'sportssync');
+  $conn = @new mysqli($dbHost, $dbUser, $dbPass, $dbName, $dbPort);
   if ($conn->connect_errno) {
     http_response_code(500);
     echo json_encode(['success'=>false,'message'=>'Database connection failed']);

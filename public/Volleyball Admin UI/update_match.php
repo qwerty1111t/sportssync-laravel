@@ -4,8 +4,22 @@ require_once __DIR__ . '/../db.php';
 header('Content-Type: application/json; charset=utf-8');
 
 if (!isset($pdo) || !($pdo instanceof PDO)) {
+  // Fallback: read credentials from environment (Railway) or Laravel config
+  if (function_exists('config')) {
+    $dbHost = config('database.connections.mysql.host', 'localhost');
+    $dbPort = config('database.connections.mysql.port', 3306);
+    $dbName = config('database.connections.mysql.database', 'sportssync');
+    $dbUser = config('database.connections.mysql.username', 'root');
+    $dbPass = config('database.connections.mysql.password', '');
+  } else {
+    $dbHost = getenv('DB_HOST') ?: 'localhost';
+    $dbPort = getenv('DB_PORT') ?: 3306;
+    $dbName = getenv('DB_DATABASE') ?: 'sportssync';
+    $dbUser = getenv('DB_USERNAME') ?: 'root';
+    $dbPass = getenv('DB_PASSWORD') ?: '';
+  }
   try {
-    $pdo = new PDO('mysql:host=localhost;dbname=sportssync;charset=utf8mb4', 'root', '', [
+    $pdo = new PDO("mysql:host={$dbHost};port={$dbPort};dbname={$dbName};charset=utf8mb4", $dbUser, $dbPass, [
       PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
       PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
       PDO::ATTR_EMULATE_PREPARES => false,
