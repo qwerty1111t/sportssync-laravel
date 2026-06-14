@@ -34,7 +34,7 @@
         $ttLink = $isAdmin ? route('tabletennis.admin') : route('tabletennis.viewer');
         $ttNext = $user ? $ttLink : route('login') . '?next=sport:tabletennis';
 
-        $drLink = $isAdmin ? route('darts.admin') : url('/DARTS ADMIN UI/viewer.php');
+        $drLink = $isAdmin ? route('darts.admin') : url('/darts-admin/viewer.php');
         $drNext = $user ? $drLink : route('login') . '?next=sport:darts';
 
         $analyticsHref = $user ? url('/analytics/analytics.php') : route('login') . '?next=sport:analytics';

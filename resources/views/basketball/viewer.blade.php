@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Basketball Viewer</title>
-<base href="/basketball-admin/">
-<link rel="stylesheet" href="/basketball-admin/basketball_viewer.css"></head>
+<link rel="stylesheet" href="{{ asset('Basketball Admin UI/basketball_viewer.css') }}">
+<script>window.LEGACY_BASE_PATH = '/basketball-admin/';</script></head>
 <body>{!! $legacy_html !!}
 <script>
 	(function(){
@@ -13,4 +13,4 @@
 		} catch(e) {}
 	})();
 </script>
-<script src="/basketball-admin/basketball_viewer.js"></script></body></html>
+<script src="{{ asset('Basketball Admin UI/basketball_viewer.js') }}"></script></body></html>

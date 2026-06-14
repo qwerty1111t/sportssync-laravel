@@ -72,7 +72,7 @@ class AuthenticatedSessionController extends Controller
                 'volleyball'  => ['admin' => 'Volleyball%20Admin%20UI/volleyball_admin.php',        'viewer' => 'Volleyball%20Admin%20UI/volleyball_viewer.php'],
                 'badminton'   => ['admin' => 'Badminton%20Admin%20UI/badminton_admin.php',          'viewer' => 'Badminton%20Admin%20UI/badminton_viewer.php'],
                 'tabletennis' => ['admin' => 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_admin.php',   'viewer' => 'TABLE%20TENNIS%20ADMIN%20UI/tabletennis_viewer.php'],
-                'darts'       => ['admin' => 'DARTS%20ADMIN%20UI/index.php',                        'viewer' => 'DARTS%20ADMIN%20UI/viewer.php'],
+                'darts'       => ['admin' => 'DARTS%20ADMIN%20UI/index.php',                        'viewer' => 'darts-admin/viewer.php'],
                 'analytics'   => ['admin' => 'analytics/analytics.php',                             'viewer' => 'analytics/analytics.php'],
                 'players'     => ['admin' => 'analytics/players.php',                               'viewer' => 'analytics/players.php'],
             ];
