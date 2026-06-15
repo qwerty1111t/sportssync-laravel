@@ -145,7 +145,7 @@
       @if($role === 'superadmin')
         <h2 class="cta-title">Superadmin Console</h2>
         <p class="cta-sub">Access the legacy admin landing page and full system controls.</p>
-        <a href="/adminlanding_page.php" class="btn btn-cta">Open Admin Landing</a>
+        <a href="{{ route('superadmin.adminlanding') }}" class="btn btn-cta">Open Admin Landing</a>
       @elseif(in_array($role, ['admin','scorekeeper']))
         <h2 class="cta-title">SportSync Admin Dashboard</h2>
         <p class="cta-sub">Open your dashboard to start scoring and analyzing matches.</p>

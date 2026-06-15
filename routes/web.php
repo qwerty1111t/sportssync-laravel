@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminLandingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuperadminController;
 use App\Http\Middleware\PreventBackHistory;
@@ -130,11 +131,12 @@ Route::middleware(['auth', 'superadmin', PreventBackHistory::class])->group(func
     Route::post('/superadmin/users/promote', [SuperadminController::class, 'promote'])->name('superadmin.users.promote');
 });
 
-// Legacy admin landing proxied through Laravel so middleware can enforce auth + role
-Route::get('/adminlanding_page.php', function (Request $request) {
-    // Redirect to the new superadmin dashboard (which serves the same legacy content)
-    return redirect('/superadmin/dashboard', 301);
-})->name('legacy.adminlanding');
+// Legacy admin landing is served through Laravel with auth + superadmin middleware
+// This ensures Nginx does NOT intercept the .php request directly, and
+// only authenticated superadmins can access the legacy admin landing page.
+Route::get('/adminlanding_page.php', [AdminLandingController::class, 'index'])
+    ->middleware(['auth', 'superadmin'])
+    ->name('superadmin.adminlanding');
 
 require __DIR__.'/legacy.php';
 require __DIR__.'/auth.php';
