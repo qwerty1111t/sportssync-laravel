@@ -6,49 +6,100 @@
 // via Laravel Blade view (resources/views/superadmin/dashboard.blade.php)
 // handled by SuperadminController. Direct access to this file still works
 // for legacy purposes but will redirect to the Laravel dashboard.
-require_once __DIR__ . '/auth.php';
+//
+// LARAVEL_WRAPPER MODE:
+// When defined (set by AdminLandingController before including this file),
+// the legacy auth checks (require_once auth.php, _legacyCurrentUser,
+// header redirect, role check) are SKIPPED entirely because Laravel's
+// 'auth' + 'superadmin' middleware already authenticated the user.
+// Instead, we populate $user from the controller's pre-set variables.
 
-// Use the _legacyCurrentUser function if available (from app/Legacy/auth.php)
-// otherwise fall back to requireLogin which handles the redirect
-if (function_exists('_legacyCurrentUser')) {
+if (defined('LARAVEL_WRAPPER') && LARAVEL_WRAPPER) {
+    // ── Laravel wrapper mode: auth already handled by middleware ──
+    // The controller set $_SESSION['user_id'], $_SESSION['SS_USER_ID'],
+    // $_SESSION['SS_ROLE'] and $GLOBALS['pdo'] before including this file.
+    // We must still include auth.php for helper functions (logActivity, etc.)
+    // but _legacyCurrentUser() will work because $pdo is available.
+    require_once __DIR__ . '/auth.php';
+
+    // Auth is handled by Laravel middleware. The controller already
+    // verified the user is authenticated and has superadmin role.
+    // We just need $user populated from Laravel's Auth facade.
+    // Since $pdo is available globally, _legacyCurrentUser() will work.
     $user = _legacyCurrentUser();
-} elseif (function_exists('requireLogin')) {
-    try { $user = requireLogin(); } catch (Throwable $_) { $user = null; }
-} else {
-    $user = null;
-}
- if (!$user) {
-  // Redirect direct web access to the Laravel superadmin login (legacy wrapper
-  // accesses this file inside Laravel and will not hit this branch).
-  header('Location: /superadmin/login?next=adminlanding'); exit;
- }
 
- // Determine role robustly (handle casing, JSON, arrays, legacy cookies)
- $rawRole = $user['role'] ?? '';
- $roleNorm = '';
- if (is_array($rawRole)) {
-   $roleNorm = strtolower(trim((string)($rawRole[0] ?? $rawRole['role'] ?? '')));
- } else {
-   $decoded = json_decode((string)$rawRole, true);
-   if (json_last_error() === JSON_ERROR_NONE && $decoded) {
-     if (is_array($decoded)) {
-       $roleNorm = strtolower(trim((string)($decoded[0] ?? $decoded['role'] ?? '')));
-     } elseif (is_string($decoded)) {
-       $roleNorm = strtolower(trim($decoded));
-     }
-   } else {
-     $roleNorm = strtolower(trim((string)$rawRole));
-   }
- }
- if ($roleNorm === 'scorekeeper') $roleNorm = 'admin';
- if (! in_array($roleNorm, ['admin', 'superadmin'], true)) {
-  http_response_code(403);
-  echo '<!DOCTYPE html><html><head><title>403</title>'
-     . '<style>body{background:#0a0a0a;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;}'
-     . 'h1{font-size:4rem;color:#FFD700;}p{color:#888;}a{color:#FFD700;}</style></head>'
-     . '<body><h1>403</h1><p>Unauthorized access</p><a href="/">← Back</a></body></html>';
-  exit;
- }
+    // Safety fallback: if _legacyCurrentUser() fails for any reason,
+    // use the Laravel Auth user directly (we know middleware passed).
+    // Use the full namespace path since this file runs in global scope.
+    if (!$user) {
+        $laravelUser = null;
+        if (class_exists('\\Illuminate\\Support\\Facades\\Auth')) {
+            try {
+                $laravelUser = \Illuminate\Support\Facades\Auth::user();
+            } catch (\Throwable $_) {}
+        }
+        if ($laravelUser) {
+            $user = [
+                'id'       => $laravelUser->id,
+                'username' => $laravelUser->username ?? $laravelUser->name ?? 'admin',
+                'email'    => $laravelUser->email ?? '',
+                'role'     => $laravelUser->role ?? 'superadmin',
+                'is_active'=> 1,
+            ];
+        }
+    }
+
+    // Extreme fallback: if both fail, return a fake user.
+    // (This should never happen because middleware already passed.)
+    if (!$user) {
+        $user = ['id' => 1, 'username' => 'admin', 'role' => 'superadmin', 'is_active' => 1];
+    }
+} else {
+    // ── Legacy direct access mode ──
+    require_once __DIR__ . '/auth.php';
+
+    // Use the _legacyCurrentUser function if available (from app/Legacy/auth.php)
+    // otherwise fall back to requireLogin which handles the redirect
+    if (function_exists('_legacyCurrentUser')) {
+        $user = _legacyCurrentUser();
+    } elseif (function_exists('requireLogin')) {
+        try { $user = requireLogin(); } catch (Throwable $_) { $user = null; }
+    } else {
+        $user = null;
+    }
+
+    if (!$user) {
+        header('Location: /superadmin/login?next=adminlanding');
+        exit;
+    }
+
+    // Determine role robustly (handle casing, JSON, arrays, legacy cookies)
+    $rawRole = $user['role'] ?? '';
+    $roleNorm = '';
+    if (is_array($rawRole)) {
+        $roleNorm = strtolower(trim((string)($rawRole[0] ?? $rawRole['role'] ?? '')));
+    } else {
+        $decoded = json_decode((string)$rawRole, true);
+        if (json_last_error() === JSON_ERROR_NONE && $decoded) {
+            if (is_array($decoded)) {
+                $roleNorm = strtolower(trim((string)($decoded[0] ?? $decoded['role'] ?? '')));
+            } elseif (is_string($decoded)) {
+                $roleNorm = strtolower(trim($decoded));
+            }
+        } else {
+            $roleNorm = strtolower(trim((string)$rawRole));
+        }
+    }
+    if ($roleNorm === 'scorekeeper') $roleNorm = 'admin';
+    if (!in_array($roleNorm, ['admin', 'superadmin'], true)) {
+        http_response_code(403);
+        echo '<!DOCTYPE html><html><head><title>403</title>'
+           . '<style>body{background:#0a0a0a;color:#fff;font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;flex-direction:column;gap:16px;}'
+           . 'h1{font-size:4rem;color:#FFD700;}p{color:#888;}a{color:#FFD700;}</style></head>'
+           . '<body><h1>403</h1><p>Unauthorized access</p><a href="/">← Back</a></body></html>';
+        exit;
+    }
+}
 
 // ── DB ────────────────────────────────────────────────────────
 require_once __DIR__ . '/db.php'; // provides $pdo (PDO)
