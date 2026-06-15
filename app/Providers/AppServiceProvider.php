@@ -34,14 +34,6 @@ class AppServiceProvider extends ServiceProvider
         Route::aliasMiddleware('legacy.session', \App\Http\Middleware\LegacySessionMiddleware::class);
         // Register dedicated superadmin middleware alias for concise route protection
         Route::aliasMiddleware('superadmin', \App\Http\Middleware\SuperAdminMiddleware::class);
-        // Ensure the lightweight legacy cookies used for compatibility are not encrypted
-        // so legacy public endpoints can read them directly (SS_USER_ID, SS_ROLE).
-        try {
-            \Illuminate\Cookie\Middleware\EncryptCookies::except(['SS_USER_ID', 'SS_ROLE']);
-        } catch (\Throwable $_) {
-            // Non-fatal: if the class/method is unavailable, continue.
-        }
-
         // Ensure a superadmin account exists if environment variables are provided.
         try {
             $email = env('SUPERADMIN_EMAIL');

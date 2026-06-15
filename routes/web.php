@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\AdminLandingController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SuperadminController;
 use App\Http\Middleware\PreventBackHistory;
@@ -129,14 +128,20 @@ Route::middleware(['auth', 'superadmin', PreventBackHistory::class])->group(func
     
     Route::get('/superadmin/users', [SuperadminController::class, 'users'])->name('superadmin.users');
     Route::post('/superadmin/users/promote', [SuperadminController::class, 'promote'])->name('superadmin.users.promote');
-});
 
-// Legacy admin landing is served through Laravel with auth + superadmin middleware
-// This ensures Nginx does NOT intercept the .php request directly, and
-// only authenticated superadmins can access the legacy admin landing page.
-Route::get('/adminlanding_page.php', [AdminLandingController::class, 'index'])
-    ->middleware(['auth', 'superadmin'])
-    ->name('superadmin.adminlanding');
+    // Admin landing (Blade SPA replacing adminlanding_page.php)
+    Route::get('/superadmin/admin-landing', [SuperadminController::class, 'index'])->name('superadmin.admin-landing');
+
+    // API endpoints for admin-landing CRUD operations
+    Route::post('/superadmin/admin-landing/toggle-user-status', [SuperadminController::class, 'toggleUserStatus']);
+    Route::post('/superadmin/admin-landing/approve-reject', [SuperadminController::class, 'approveRejectAdmin']);
+    Route::post('/superadmin/admin-landing/delete-user', [SuperadminController::class, 'deleteUser']);
+    Route::post('/superadmin/admin-landing/change-username', [SuperadminController::class, 'changeUsername']);
+    Route::post('/superadmin/admin-landing/add-user', [SuperadminController::class, 'addUser']);
+    Route::post('/superadmin/admin-landing/toggle-sport-status', [SuperadminController::class, 'toggleSportStatus']);
+    Route::post('/superadmin/admin-landing/save-setting', [SuperadminController::class, 'saveSystemSetting']);
+    Route::get('/superadmin/admin-landing/export-activity-log', [SuperadminController::class, 'exportActivityLog']);
+});
 
 require __DIR__.'/legacy.php';
 require __DIR__.'/auth.php';
