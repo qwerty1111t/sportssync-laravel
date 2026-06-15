@@ -49,6 +49,40 @@ class LegacyProxyController extends Controller
         if ($path === 'viewer' && $actualSport === 'DARTS ADMIN UI') {
             $path = 'viewer.php';
         }
+        
+        // Generic path mapping: if the URL path matches a known legacy file (without .php),
+        // map it back to the actual .php filename so it works through the proxy without
+        // Nginx intercepting the .php extension.
+        $knownLegacyFiles = [
+            'Basketball Admin UI' => [
+                'basketball_matches_admin' => 'basketball_matches_admin.php',
+            ],
+            'Volleyball Admin UI' => [
+                'volleyball_matches_admin' => 'volleyball_matches_admin.php',
+            ],
+            'Badminton Admin UI' => [
+                'badminton_matches_admin' => 'badminton_matches_admin.php',
+            ],
+            'TABLE TENNIS ADMIN UI' => [
+                'tabletennis_matches_admin' => 'tabletennis_matches_admin.php',
+            ],
+            'DARTS ADMIN UI' => [
+                'history'                      => 'history.html',
+                'get_history'                  => 'get_history.php',
+                'get_match'                    => 'get_match.php',
+                'delete_match'                 => 'delete_match.php',
+                'update_match'                 => 'update_match.php',
+                'darts_report'                 => 'darts_report.php',
+                'report_export'                => 'report_export.php',
+                'save_match'                   => 'save_match.php',
+                'save_leg'                     => 'save_leg.php',
+                'state'                        => 'state.php',
+            ],
+        ];
+        
+        if (isset($knownLegacyFiles[$actualSport][$path])) {
+            $path = $knownLegacyFiles[$actualSport][$path];
+        }
 
         // Basic sanitization
         $path = str_replace("\0", '', $path);

@@ -45,7 +45,7 @@ class BadmintonAdminController extends Controller
             include $legacyPath;
             $html = ob_get_clean();
             Log::info('[BADMINTON] Legacy HTML loaded', ['length' => strlen($html)]);
-            
+    
             // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
             $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
             $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening
@@ -54,6 +54,9 @@ class BadmintonAdminController extends Controller
             $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
             $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
             $this->injectLegacyBasePath('badminton-admin', $html);
+    
+            // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+            $html = str_replace("'badminton_matches_admin.php'", "'/badminton-admin/badminton_matches_admin'", $html);
             
             Log::info('[BADMINTON] Rendering view', ['legacy_html_length' => strlen($html)]);
             return view('badminton.admin', ['legacy_html' => $html]);

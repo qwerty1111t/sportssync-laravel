@@ -24,6 +24,8 @@ class TableTennisReportController extends Controller
 
         // Include legacy report (legacy script expects $mysqli)
         ob_start(); include $legacyPath; $html = ob_get_clean();
+        // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+        $html = str_replace("'tabletennis_matches_admin.php'", "'/tabletennis-admin/tabletennis_matches_admin'", $html);
         return view('tabletennis.report', ['legacy_html' => $html]);
     }
 }

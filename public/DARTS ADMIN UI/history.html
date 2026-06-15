@@ -412,6 +412,22 @@ a{text-decoration:none;color:inherit}
 </main>
 
 <script>
+// Determine the base URL for API calls.
+// When loaded through the Laravel proxy (/darts-admin/history), relative
+// URLs like 'get_history.php' resolve to /darts-admin/get_history.php
+// which triggers Nginx's .php handler before the proxy can route it.
+// Instead, resolve API calls relative to the actual filesystem directory.
+var BASE_API_URL = (function() {
+  var path = window.location.pathname;
+  // If the path starts with /darts-admin/, resolve APIs directly to the
+  // filesystem directory so Nginx can serve them.
+  if (path.indexOf('/darts-admin/') === 0) {
+    return '/DARTS%20ADMIN%20UI/';
+  }
+  // Otherwise (direct filesystem access), APIs are in the same directory.
+  return '';
+})();
+
 let selectedMatchId = null;
 let allMatchCards = [];
 const PER_PAGE = 10;
@@ -472,7 +488,7 @@ function renderCards() {
 }
 
 function loadHistory() {
-  fetch('get_history.php')
+  fetch(BASE_API_URL + 'get_history.php')
     .then(r => r.json())
     .then(data => {
       var list = document.getElementById('match-list');
@@ -520,7 +536,7 @@ function loadHistory() {
 
         // Click to open report
         contentDiv.addEventListener('click', () => {
-          window.open('darts_report.php?match_id=' + encodeURIComponent(m.id), '_blank');
+          window.open(BASE_API_URL + 'darts_report.php?match_id=' + encodeURIComponent(m.id), '_blank');
         });
 
         // Actions
@@ -586,7 +602,7 @@ function loadMatchDetail(matchId) {
   inner.innerHTML = '<div style="color:var(--text-muted);padding:24px;text-align:center">Loading match details…</div>';
   section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  fetch('get_match.php?match_id=' + matchId)
+  fetch(BASE_API_URL + 'get_match.php?match_id=' + matchId)
     .then(r => r.json())
     .then(data => {
       if (!data.success) { inner.innerHTML = '<p style="color:var(--danger)">Error loading match.</p>'; return; }
@@ -623,9 +639,9 @@ function renderMatchReport(data, matchId) {
   let html = `<div class="report-title">🎯 ${escH(m.game_type)} Match Report — #${matchId}</div>`;
 
   html += `<div class="export-btns">
-    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open('report_export.php?match_id=${matchId}&format=html&download=1','_blank')">⬇ Save as HTML</button>
-    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open('report_export.php?match_id=${matchId}&format=excel','_blank')">⬇ Save as Excel</button>
-    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open('report_export.php?match_id=${matchId}&format=print','_blank')">🖨 Print / PDF</button>
+    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open(BASE_API_URL + 'report_export.php?match_id=${matchId}&format=html&download=1','_blank')">⬇ Save as HTML</button>
+    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open(BASE_API_URL + 'report_export.php?match_id=${matchId}&format=excel','_blank')">⬇ Save as Excel</button>
+    <button class="ss-btn ss-btn-ghost ss-btn-sm" onclick="window.open(BASE_API_URL + 'report_export.php?match_id=${matchId}&format=print','_blank')">🖨 Print / PDF</button>
   </div>`;
 
   html += `<div class="report-section-head">Match Overview</div>
@@ -700,7 +716,7 @@ function deleteMatch(matchId) {
     return;
   }
   
-  fetch('delete_match.php', {
+  fetch(BASE_API_URL + 'delete_match.php', {
     method: 'POST',
     credentials: 'include',
     headers: { 'Content-Type': 'application/json' },
@@ -737,7 +753,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const msg = `Delete ${ids.length} match(es)?\n\n⚠️ This will permanently remove:\n• Match records\n• All player data\n• Game statistics\n\nThis action CANNOT be undone.`;
     if (!confirm(msg)) return;
 
-    fetch('delete_match.php', {
+    fetch(BASE_API_URL + 'delete_match.php', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -761,7 +777,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 window.MATCH_HISTORY_EDIT_CONFIG = {
-  endpoint: new URL('update_match.php', window.location.href).href,
+  endpoint: new URL(BASE_API_URL + 'update_match.php', window.location.href).href,
   kind: 'darts',
   rowPrefix: 'mcard-'
 };

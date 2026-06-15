@@ -40,11 +40,14 @@ class BasketballAdminController extends Controller
         // Strip only the outer HTML structure - Blade view provides wrapper and CSS/JS loading
         $html = preg_replace('/(<!DOCTYPE.*?>)/i', '', $html); // Remove DOCTYPE
         $html = preg_replace('/<html[^>]*>/i', '', $html); // Remove html opening
-        $html = preg_replace('/<\/html>/i', '', $html); // Remove html closing
+        $html = preg_replace('/<\/html>/i', '', $html); // Replace html closing
         $html = preg_replace('/<head[^>]*>.*?<\/head>/is', '', $html); // Remove entire head
         $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
         $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
         $this->injectLegacyBasePath('basketball-admin', $html);
+
+        // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+        $html = str_replace("'basketball_matches_admin.php'", "'/basketball-admin/basketball_matches_admin'", $html);
 
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 

@@ -32,6 +32,8 @@ class BasketballReportController extends Controller
         ob_start(); include $legacyPath; $html = ob_get_clean();
         $html = str_replace('basketball_viewer.css', '/Basketball Admin UI/basketball_viewer.css', $html);
         $html = str_replace('basketball_viewer.js', '/Basketball Admin UI/basketball_viewer.js', $html);
+        // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+        $html = str_replace("'basketball_matches_admin.php'", "'/basketball-admin/basketball_matches_admin'", $html);
         return view('basketball.report', ['legacy_html' => $html]);
     }
 }

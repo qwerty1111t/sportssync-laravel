@@ -54,6 +54,9 @@ class TableTennisAdminController extends Controller
             $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
             $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
             $this->injectLegacyBasePath('tabletennis-admin', $html);
+    
+            // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+            $html = str_replace("'tabletennis_matches_admin.php'", "'/tabletennis-admin/tabletennis_matches_admin'", $html);
             
             Log::info('[TABLE TENNIS] Rendering view', ['legacy_html_length' => strlen($html)]);
             return view('tabletennis.admin', ['legacy_html' => $html]);

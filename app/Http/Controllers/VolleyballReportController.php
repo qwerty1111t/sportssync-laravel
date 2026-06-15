@@ -26,6 +26,8 @@ class VolleyballReportController extends Controller
         ob_start(); include $legacyPath; $html = ob_get_clean();
         $html = str_replace('volleyball_viewer.css', '/Volleyball Admin UI/volleyball_viewer.css', $html);
         $html = str_replace('volleyball_viewer.js', '/Volleyball Admin UI/volleyball_viewer.js', $html);
+        // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+        $html = str_replace("'volleyball_matches_admin.php'", "'/volleyball-admin/volleyball_matches_admin'", $html);
         return view('volleyball.report', ['legacy_html' => $html]);
     }
 }

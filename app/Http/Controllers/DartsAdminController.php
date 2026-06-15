@@ -56,6 +56,10 @@ class DartsAdminController extends Controller
             $html = preg_replace('/<body[^>]*>/i', '', $html); // Remove body opening
             $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
             $html = str_replace('darts.sql', $legacyDir . 'darts.sql', $html);
+
+            // Rewrite relative history button URL so it goes through the proxy (no .php extension)
+            $html = str_replace("'history.html'", "'/darts-admin/history'", $html);
+
             $this->injectLegacyBasePath('darts-admin', $html);
             
             Log::info('[DARTS] Rendering view', ['legacy_html_length' => strlen($html)]);

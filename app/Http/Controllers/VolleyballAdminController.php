@@ -46,6 +46,9 @@ class VolleyballAdminController extends Controller
         $html = preg_replace('/<\/body>/i', '', $html); // Remove body closing
         $this->injectLegacyBasePath('volleyball-admin', $html);
 
+        // Rewrite relative match history button URLs so they go through the proxy (no .php extension)
+        $html = str_replace("'volleyball_matches_admin.php'", "'/volleyball-admin/volleyball_matches_admin'", $html);
+
         // Legacy session/cookie injection is handled by middleware `legacy.session`.
 
         return view('volleyball.admin', ['legacy_html' => $html]);
