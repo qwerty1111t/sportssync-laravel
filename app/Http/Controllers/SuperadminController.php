@@ -273,8 +273,8 @@ class SuperadminController extends Controller
             'name'          => $validated['username'],
             'username'      => $validated['username'],
             'email'         => $validated['email'] ?? $validated['username'] . '@sportssync.local',
-            'password'      => Hash::make($validated['password']),
-            'password_hash' => Hash::make($validated['password']),
+            'password'      => $validated['password'], // Hashed by model's 'password' => 'hashed' cast
+            'password_hash' => $validated['password'], // Store plaintext for legacy compatibility (legacy code reads this)
             'role'          => $validated['role'],
             'status'        => 'active',
         ]);
