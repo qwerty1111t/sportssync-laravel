@@ -8,6 +8,9 @@
 // These are set up by the Laravel route handler (routes/web.php) when included
 // via the route. If accessed directly, we define fallbacks here.
 
+// Load DB FIRST so $pdo is available for currentUser() fallback
+require_once __DIR__ . '/db.php'; // provides $pdo (PDO)
+
 // Define currentUser() using Laravel's Auth facade
 if (!function_exists('currentUser')) {
     function currentUser(): ?array {
@@ -23,22 +26,20 @@ if (!function_exists('currentUser')) {
         }
         // Fallback for direct access: try legacy session-based auth
         @session_start();
-        if (!empty($_SESSION['user_id']) && !empty($_SESSION['SS_USER_ID'])) {
-            global $pdo;
-            if ($pdo) {
-                try {
-                    $stmt = $pdo->prepare('SELECT id, username, role FROM users WHERE id = ? LIMIT 1');
-                    $stmt->execute([$_SESSION['SS_USER_ID'] ?? $_SESSION['user_id']]);
-                    $u = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if ($u) return $u;
-                } catch (Throwable $e) {}
-            }
+        global $pdo;
+        if (!empty($_SESSION['SS_USER_ID']) && $pdo) {
+            try {
+                $stmt = $pdo->prepare('SELECT id, username, role FROM users WHERE id = ? LIMIT 1');
+                $stmt->execute([$_SESSION['SS_USER_ID']]);
+                $u = $stmt->fetch(PDO::FETCH_ASSOC);
+                if ($u) return $u;
+            } catch (Throwable $e) {}
         }
         return null;
     }
 }
 
-// Load legacy auth helpers (for $pdo, requireLogin, etc.)
+// Load legacy auth helpers (for requireLogin, session helpers, etc.)
 require_once __DIR__ . '/auth.php';
 
 $user = currentUser();
@@ -74,8 +75,7 @@ $user = currentUser();
   exit;
  }
 
-// ── DB ────────────────────────────────────────────────────────
-require_once __DIR__ . '/db.php'; // provides $pdo (PDO)
+// ── DB already loaded via __DIR__ . '/db.php' above ────────
 
 $adminId       = (int)($user['id']       ?? 0);
 $adminUsername = (string)($user['username'] ?? 'admin');
