@@ -55,14 +55,14 @@ class RegisteredUserController extends Controller
             'email.unique' => 'Email already exists.',
         ]);
 
-        $passwordHash = Hash::make($request->password);
-
+        // IMPORTANT: Do NOT pre-hash the password. The User model's 'password' => 'hashed' cast
+        // automatically hashes it. Pre-hashing causes double-hashing and login failures.
         $userData = [
             'name' => $username,
             'username' => $username,
             'email' => $email,
-            'password' => $passwordHash,
-            'password_hash' => $passwordHash,
+            'password' => $request->password, // Model cast 'hashed' handles hashing
+            'password_hash' => $request->password, // Plaintext for legacy compatibility
         ];
         // Default to conservative 'viewer' role when none provided.
         $userData['role'] = $request->input('role', 'viewer');
