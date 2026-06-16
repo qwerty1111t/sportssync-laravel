@@ -56,6 +56,9 @@ class LegacyProxyController extends Controller
         $knownLegacyFiles = [
             'Basketball Admin UI' => [
                 'basketball_matches_admin' => 'basketball_matches_admin.php',
+                'timer' => 'timer.php',
+                'state' => 'state.php',
+                'new_match' => 'new_match.php',
             ],
             'Volleyball Admin UI' => [
                 'volleyball_matches_admin' => 'volleyball_matches_admin.php',
