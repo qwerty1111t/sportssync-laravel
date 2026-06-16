@@ -93,8 +93,8 @@ class AuthenticatedSessionController extends Controller
             }
         }
 
-        // Default: land on superadmin dashboard
-        return redirect()->route('superadmin.dashboard');
+        // Default: land on admin landing page (the legacy adminlanding_page.php)
+        return redirect()->route('superadmin.admin-landing');
     }
 
     /**

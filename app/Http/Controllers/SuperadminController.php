@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 class SuperadminController extends Controller
 {
     /**
-     * Display the superadmin dashboard / admin landing.
+     * Show the superadmin dashboard / admin landing page.
      */
     public function index(Request $request)
     {
@@ -70,34 +70,32 @@ class SuperadminController extends Controller
         // ── All matches (latest 200) ─────────────────────────────────
         $allMatches = [];
         try {
-            $allMatches = DB::select('
-                SELECT \'Basketball\' AS sport,
-                       CONCAT(team_a_name, \' vs \', team_b_name) AS teams,
-                       CONCAT(team_a_score, \' - \', team_b_score, \' (\', match_result, \')\') AS score_result,
-                       saved_at AS match_date
-                  FROM matches
-                UNION ALL
-                SELECT \'Volleyball\',
-                       CONCAT(team_a_name, \' vs \', team_b_name),
-                       CONCAT(team_a_score, \' - \', team_b_score, \' (\', match_result, \')\'),
-                       created_at FROM volleyball_matches
-                UNION ALL
-                SELECT \'Badminton\',
-                       CONCAT(team_a_name, \' vs \', team_b_name),
-                       CONCAT(\'Winner: \', COALESCE(winner_name,\'\'-\'\'), \' | \', status),
-                       created_at FROM badminton_matches
-                UNION ALL
-                SELECT \'Table Tennis\',
-                       CONCAT(team_a_name, \' vs \', team_b_name),
-                       CONCAT(\'Winner: \', COALESCE(winner_name,\'\'-\'\'), \' | \', status),
-                       created_at FROM table_tennis_matches
-                UNION ALL
-                SELECT \'Darts\',
-                       CONCAT(game_type, \' \'—\' \', COALESCE(legs_to_win,\'\'?\'\'), \' legs\'),
-                       CONCAT(\'Winner: \', COALESCE(winner_name,\'\'-\'\')),
-                       created_at FROM darts_matches
-                ORDER BY match_date DESC LIMIT 200'
-            );
+            $allMatches = DB::select("SELECT 'Basketball' AS sport,
+                   CONCAT(team_a_name, ' vs ', team_b_name) AS teams,
+                   CONCAT(team_a_score, ' - ', team_b_score, ' (', match_result, ')') AS result,
+                   saved_at AS match_date
+              FROM matches
+            UNION ALL
+            SELECT 'Volleyball',
+                   CONCAT(team_a_name, ' vs ', team_b_name),
+                   CONCAT(team_a_score, ' - ', team_b_score, ' (', match_result, ')'),
+                   created_at FROM volleyball_matches
+            UNION ALL
+            SELECT 'Badminton',
+                   CONCAT(team_a_name, ' vs ', team_b_name),
+                   CONCAT('Winner: ', COALESCE(winner_name, '?'), ' | ', status),
+                   created_at FROM badminton_matches
+            UNION ALL
+            SELECT 'Table Tennis',
+                   CONCAT(team_a_name, ' vs ', team_b_name),
+                   CONCAT('Winner: ', COALESCE(winner_name, '?'), ' | ', status),
+                   created_at FROM table_tennis_matches
+            UNION ALL
+            SELECT 'Darts',
+                   CONCAT(game_type, ' ', COALESCE(legs_to_win, '?'), ' legs'),
+                   CONCAT('Winner: ', COALESCE(winner_name, '?')),
+                   created_at FROM darts_matches
+            ORDER BY match_date DESC LIMIT 200");
         } catch (\Throwable $e) {
             Log::warning('[SuperadminDashboard] matches query failed: ' . $e->getMessage());
         }
@@ -137,287 +135,239 @@ class SuperadminController extends Controller
     public function users(Request $request)
     {
         $users = User::orderBy('id', 'desc')->limit(200)->get();
-        return view('superadmin.users', ['users' => $users]);
+        return response()->json(['users' => $users]);
     }
 
     /**
-     * Promote a user to superadmin role.
+     * Promote a viewer/scorekeeper to admin (or set pending).
      */
     public function promote(Request $request)
     {
-        $id = (int) $request->input('user_id');
-        if (!$id) {
-            return redirect()->back()->with('error', 'Missing user id');
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $target = User::findOrFail($request->input('user_id'));
+        // Only allow promoting viewers or scorers
+        if (!in_array($target->role, ['viewer', 'scorer'], true)) {
+            return back()->with('error', 'User is already admin or superadmin.');
         }
+        $target->role = 'admin';
+        $target->status = 'pending'; // requires superadmin approval
+        $target->save();
 
-        $u = User::find($id);
-        if (!$u) {
-            return redirect()->back()->with('error', 'User not found');
-        }
+        $this->logActivity(Auth::id(), Auth::user()->username, "Promoted {$target->username} (ID:{$target->id}) to admin (pending)");
 
-        $u->role = 'superadmin';
-        $u->save();
-
-        $this->logActivity($u->id, $u->username ?? $u->name ?? 'system', "Promoted to superadmin: {$u->username}");
-
-        return redirect()->back()->with('success', 'User promoted to superadmin');
+        return back()->with('success', "{$target->username} has been promoted to admin (pending approval).");
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // AJAX ENDPOINTS (return JSON)
-    // ═══════════════════════════════════════════════════════════════
-
     /**
-     * Approve or reject an admin applicant.
+     * Approve or reject a pending admin applicant.
+     * POST /superadmin/admin-landing/approve-reject
+     * Expects JSON: { user_id: int, action: 'approve'|'reject' }
      */
     public function approveRejectAdmin(Request $request)
     {
-        $action = $request->input('action'); // 'approve' or 'reject'
-        $targetId = (int) $request->input('user_id');
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+            'action'  => 'required|in:approve,reject',
+        ]);
 
-        if (!$targetId || !in_array($action, ['approve', 'reject'], true)) {
-            return response()->json(['success' => false, 'message' => 'Invalid parameters'], 400);
-        }
+        $target = User::findOrFail($request->input('user_id'));
+        $action = $request->input('action');
 
-        $user = User::find($targetId);
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
-        }
-
-        if ($user->role !== 'admin') {
-            return response()->json(['success' => false, 'message' => 'Target is not an admin applicant'], 400);
-        }
-
-        $newStatus = $action === 'approve' ? 'approved' : 'rejected';
-        $user->status = $newStatus;
         if ($action === 'approve') {
-            $user->is_active = 1;
+            $target->status = 'active';
+            $target->role = 'admin';
+            $target->save();
+            $this->logActivity(Auth::id(), Auth::user()->username, "Approved admin applicant: {$target->username} (ID:{$target->id})");
+            return response()->json(['success' => true, 'message' => 'Applicant approved.']);
+        } else {
+            // reject: revert to viewer
+            $target->role = 'viewer';
+            $target->status = 'active';
+            $target->save();
+            $this->logActivity(Auth::id(), Auth::user()->username, "Rejected admin applicant: {$target->username} (ID:{$target->id})");
+            return response()->json(['success' => true, 'message' => 'Applicant rejected.']);
         }
-        $user->save();
-
-        $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin',
-            ucfirst($newStatus) . ' admin applicant: ' . ($user->username ?? 'unknown'));
-
-        return response()->json(['success' => true, 'new_status' => $newStatus, 'user_id' => $targetId]);
     }
 
     /**
      * Toggle user active/deactivated status.
+     * POST /superadmin/admin-landing/toggle-user-status
      */
     public function toggleUserStatus(Request $request)
     {
-        $targetId = (int) $request->input('user_id');
-        if (!$targetId) {
-            return response()->json(['success' => false, 'message' => 'Invalid user ID'], 400);
-        }
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
 
-        $user = User::find($targetId);
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
-        }
+        $target = User::findOrFail($request->input('user_id'));
+        $newStatus = ($target->status === 'active') ? 'deactivated' : 'active';
+        $target->status = $newStatus;
+        $target->save();
 
-        $newStatus = ($user->status === 'active') ? 'deactivated' : 'active';
-        $user->status = $newStatus;
-        $user->save();
-
-        $label = $newStatus === 'active' ? 'Account activated' : 'Account deactivated';
-        $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin',
-            $label . ': ' . ($user->username ?? 'unknown'));
+        $this->logActivity(Auth::id(), Auth::user()->username, "Changed {$target->username} (ID:{$target->id}) status to {$newStatus}");
 
         return response()->json(['success' => true, 'new_status' => $newStatus]);
     }
 
     /**
-     * Delete a user (only if deactivated).
+     * Delete a user.
+     * POST /superadmin/admin-landing/delete-user
      */
     public function deleteUser(Request $request)
     {
-        $targetId = (int) $request->input('user_id');
-        if (!$targetId) {
-            return response()->json(['success' => false, 'message' => 'Invalid user ID'], 400);
+        $request->validate([
+            'user_id' => 'required|integer|exists:users,id',
+        ]);
+
+        $target = User::findOrFail($request->input('user_id'));
+        if ($target->role === 'superadmin') {
+            return response()->json(['success' => false, 'error' => 'Cannot delete a superadmin.'], 403);
         }
 
-        $user = User::find($targetId);
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
-        }
+        $username = $target->username;
+        $target->delete();
 
-        if ($user->status !== 'deactivated') {
-            return response()->json(['success' => false, 'message' => 'Deactivate the user first before deleting'], 400);
-        }
+        $this->logActivity(Auth::id(), Auth::user()->username, "Deleted user {$username} (ID:{$request->input('user_id')})");
 
-        $username = $user->username ?? 'unknown';
-        $user->delete();
+        return response()->json(['success' => true, 'message' => 'User deleted.']);
+    }
 
-        $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin',
-            'Account deleted: ' . $username);
+    /**
+     * Change a user's username.
+     * POST /superadmin/admin-landing/change-username
+     */
+    public function changeUsername(Request $request)
+    {
+        $request->validate([
+            'user_id'      => 'required|integer|exists:users,id',
+            'new_username' => 'required|string|max:255|unique:users,username',
+        ]);
+
+        $target = User::findOrFail($request->input('user_id'));
+        $old = $target->username;
+        $target->username = $request->input('new_username');
+        $target->save();
+
+        $this->logActivity(Auth::id(), Auth::user()->username, "Changed username from {$old} to {$target->username} (ID:{$target->id})");
 
         return response()->json(['success' => true]);
     }
 
     /**
-     * Change a user's username.
-     */
-    public function changeUsername(Request $request)
-    {
-        $targetId = (int) $request->input('user_id');
-        $newUsername = trim($request->input('new_username', ''));
-
-        if (!$targetId || $newUsername === '') {
-            return response()->json(['success' => false, 'message' => 'User ID and new username required'], 400);
-        }
-        if (strlen($newUsername) < 3 || strlen($newUsername) > 60) {
-            return response()->json(['success' => false, 'message' => 'Username must be 3–60 characters'], 400);
-        }
-
-        $existing = User::where('username', $newUsername)->where('id', '!=', $targetId)->first();
-        if ($existing) {
-            return response()->json(['success' => false, 'message' => 'Username already taken'], 409);
-        }
-
-        $user = User::find($targetId);
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
-        }
-
-        $oldUsername = $user->username ?? 'unknown';
-        $user->username = $newUsername;
-        $user->save();
-
-        $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin',
-            "Username changed: {$oldUsername} → {$newUsername}");
-
-        return response()->json(['success' => true, 'new_username' => $newUsername]);
-    }
-
-    /**
      * Add a new user manually.
+     * POST /superadmin/admin-landing/add-user
      */
     public function addUser(Request $request)
     {
-        $newUsername = trim($request->input('username', ''));
-        $newPassword = $request->input('password', '');
-        $newRole = trim($request->input('role', 'viewer'));
-
-        if ($newUsername === '' || $newPassword === '') {
-            return response()->json(['success' => false, 'message' => 'Username and password required'], 400);
-        }
-        if (strlen($newUsername) < 3 || strlen($newUsername) > 60) {
-            return response()->json(['success' => false, 'message' => 'Username must be 3–60 characters'], 400);
-        }
-        if (strlen($newPassword) < 6) {
-            return response()->json(['success' => false, 'message' => 'Password must be at least 6 characters'], 400);
-        }
-        if (!in_array($newRole, ['admin', 'viewer', 'scorer'], true)) {
-            $newRole = 'viewer';
-        }
-
-        $existing = User::where('username', $newUsername)->first();
-        if ($existing) {
-            return response()->json(['success' => false, 'message' => 'Username already exists'], 409);
-        }
+        $validated = $request->validate([
+            'username' => 'required|string|max:255|unique:users,username',
+            'email'    => 'nullable|string|email|max:255|unique:users,email',
+            'password' => 'required|string|min:6',
+            'role'     => 'required|in:viewer,scorer,admin',
+        ]);
 
         $user = User::create([
-            'username' => $newUsername,
-            'password' => Hash::make($newPassword),
-            'role' => $newRole,
-            'status' => 'active',
+            'name'          => $validated['username'],
+            'username'      => $validated['username'],
+            'email'         => $validated['email'] ?? $validated['username'] . '@sportssync.local',
+            'password'      => Hash::make($validated['password']),
+            'password_hash' => Hash::make($validated['password']),
+            'role'          => $validated['role'],
+            'status'        => 'active',
         ]);
 
-        $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin',
-            "Account created: {$newUsername} (role: {$newRole})");
+        $this->logActivity(Auth::id(), Auth::user()->username, "Created user {$user->username} (ID:{$user->id}) as {$validated['role']}");
 
-        return response()->json([
-            'success' => true,
-            'user_id' => $user->id,
-            'username' => $newUsername,
-            'role' => $newRole,
-        ]);
+        return response()->json(['success' => true, 'user' => $user]);
     }
 
     /**
-     * Toggle a sport's active/inactive status.
+     * Toggle sport active/inactive status.
+     * POST /superadmin/admin-landing/toggle-sport-status
      */
     public function toggleSportStatus(Request $request)
     {
-        $sportId = (int) $request->input('sport_id');
-        if (!$sportId) {
-            return response()->json(['success' => false, 'message' => 'Invalid sport ID'], 400);
+        $request->validate([
+            'sport_id' => 'required|integer',
+        ]);
+
+        $sportId = $request->input('sport_id');
+        $sport = DB::table('sports')->where('id', $sportId)->first();
+        if (!$sport) {
+            return response()->json(['success' => false, 'error' => 'Sport not found.'], 404);
         }
+        $newStatus = ($sport->status === 'active') ? 'inactive' : 'active';
+        DB::table('sports')->where('id', $sportId)->update(['status' => $newStatus]);
 
-        try {
-            $sport = DB::table('sports')->where('id', $sportId)->first();
-            if (!$sport) {
-                return response()->json(['success' => false, 'message' => 'Sport not found'], 404);
-            }
+        $this->logActivity(Auth::id(), Auth::user()->username, "Toggled sport {$sport->name} (ID:{$sportId}) to {$newStatus}");
 
-            $newStatus = ($sport->status === 'active') ? 'inactive' : 'active';
-            DB::table('sports')->where('id', $sportId)->update(['status' => $newStatus]);
-
-            $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin',
-                'Sport ' . ucfirst($newStatus) . ': ' . ($sport->name ?? 'unknown'));
-
-            return response()->json(['success' => true, 'new_status' => $newStatus]);
-        } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'DB error: ' . $e->getMessage()], 500);
-        }
+        return response()->json(['success' => true, 'new_status' => $newStatus, 'message' => "{$sport->name} is now {$newStatus}."]);
     }
 
     /**
-     * Save a system setting (e.g. maintenance_mode).
+     * Save a system setting (key-value).
+     * POST /superadmin/admin-landing/save-setting
      */
     public function saveSystemSetting(Request $request)
     {
-        $key = trim($request->input('key', ''));
-        $value = trim($request->input('value', ''));
-        $allowed = ['maintenance_mode'];
+        $request->validate([
+            'key'   => 'required|string',
+            'value' => 'required|string',
+        ]);
 
-        if (!in_array($key, $allowed, true)) {
-            return response()->json(['success' => false, 'message' => 'Unknown setting key'], 400);
-        }
+        $key = $request->input('key');
+        $value = $request->input('value');
 
         try {
-            DB::statement('
-                INSERT INTO system_settings (`key`, `value`)
-                VALUES (?, ?)
-                ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), updated_at = NOW()
-            ', [$key, $value]);
-
-            $label = $key === 'maintenance_mode'
-                ? ($value === '1' ? 'Maintenance Mode: ON' : 'Maintenance Mode: OFF')
-                : "Setting changed: {$key} = {$value}";
-
-            $this->logActivity(Auth::id(), Auth::user()->username ?? 'admin', $label);
-
-            return response()->json(['success' => true, 'key' => $key, 'value' => $value]);
+            $exists = DB::table('system_settings')->where('key', $key)->exists();
+            if ($exists) {
+                DB::table('system_settings')->where('key', $key)->update(['value' => $value]);
+            } else {
+                DB::table('system_settings')->insert(['key' => $key, 'value' => $value]);
+            }
+            $this->logActivity(Auth::id(), Auth::user()->username, "Changed setting '{$key}' to '{$value}'");
+            return response()->json(['success' => true]);
         } catch (\Throwable $e) {
-            return response()->json(['success' => false, 'message' => 'DB error: ' . $e->getMessage()], 500);
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
         }
     }
 
     /**
      * Export activity log as CSV.
+     * GET /superadmin/admin-landing/export-activity-log
      */
     public function exportActivityLog(Request $request)
     {
         try {
-            $rows = DB::select('SELECT id, user_id, username, action, timestamp FROM activity_log ORDER BY timestamp DESC');
+            $logs = DB::select('SELECT * FROM activity_log ORDER BY timestamp DESC');
         } catch (\Throwable $e) {
-            $rows = [];
+            $logs = [];
         }
 
-        $csv = "ID,User ID,Username,Action,Timestamp\n";
-        foreach ($rows as $row) {
-            $csv .= '"' . implode('","', [
-                $row->id ?? '', $row->user_id ?? '', $row->username ?? '',
-                str_replace('"', '""', $row->action ?? ''), $row->timestamp ?? ''
-            ]) . "\"\n";
-        }
+        $headers = [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="activity-log-' . date('Y-m-d') . '.csv"',
+        ];
 
-        return response($csv, 200, [
-            'Content-Type' => 'text/csv; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="activity_log_' . date('Ymd_His') . '.csv"',
-        ]);
+        $callback = function () use ($logs) {
+            $fh = fopen('php://output', 'w');
+            fputcsv($fh, ['ID', 'User ID', 'Username', 'Action', 'Timestamp']);
+            foreach ($logs as $row) {
+                fputcsv($fh, [
+                    $row->id ?? '',
+                    $row->user_id ?? '',
+                    $row->username ?? '',
+                    $row->action ?? '',
+                    $row->timestamp ?? '',
+                ]);
+            }
+            fclose($fh);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**
@@ -426,12 +376,14 @@ class SuperadminController extends Controller
     private function logActivity(?int $userId, string $username, string $action): void
     {
         try {
-            DB::insert(
-                'INSERT INTO activity_log (user_id, username, action, timestamp) VALUES (?, ?, ?, NOW())',
-                [$userId, $username, $action]
-            );
+            DB::table('activity_log')->insert([
+                'user_id'   => $userId,
+                'username'  => $username,
+                'action'    => $action,
+                'timestamp' => now(),
+            ]);
         } catch (\Throwable $e) {
-            // Non-fatal
+            Log::warning('[SuperadminDashboard] Failed to log activity: ' . $e->getMessage());
         }
     }
 }

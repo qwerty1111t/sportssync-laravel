@@ -129,8 +129,40 @@ Route::middleware(['auth', 'superadmin', PreventBackHistory::class])->group(func
     Route::get('/superadmin/users', [SuperadminController::class, 'users'])->name('superadmin.users');
     Route::post('/superadmin/users/promote', [SuperadminController::class, 'promote'])->name('superadmin.users.promote');
 
-    // Admin landing (Blade SPA replacing adminlanding_page.php)
-    Route::get('/superadmin/admin-landing', [SuperadminController::class, 'index'])->name('superadmin.admin-landing');
+    // Admin landing page (legacy PHP) - serves adminlanding_page.php
+    // This route provides Laravel bootstrapping ($pdo, currentUser(), helpers)
+    // so the legacy PHP file can work within Laravel's auth system.
+    Route::get('/superadmin/admin-landing', function (\Illuminate\Http\Request $request) {
+        // Bootstrap Laravel's DB connection as $pdo for the legacy file
+        $pdo = \DB::connection()->getPdo();
+        
+        // Provide Laravel's Auth facade user as currentUser()
+        if (!function_exists('currentUser')) {
+            function currentUser() {
+                $u = \Illuminate\Support\Facades\Auth::user();
+                if ($u) {
+                    return [
+                        'id' => $u->id,
+                        'username' => $u->username ?? $u->name ?? 'admin',
+                        'role' => $u->role ?? 'admin',
+                    ];
+                }
+                return null;
+            }
+        }
+        
+        // Helper replacements for Laravel Blade-only functions
+        if (!function_exists('csrf_token')) {
+            function csrf_token() { return ''; }
+        }
+        if (!function_exists('e')) {
+            function e($value) { return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8'); }
+        }
+        
+        // Include the legacy admin landing page
+        include base_path('public/superadmin_adminlanding_page.php');
+        return response('', 200);
+    })->name('superadmin.admin-landing');
 
     // API endpoints for admin-landing CRUD operations
     Route::post('/superadmin/admin-landing/toggle-user-status', [SuperadminController::class, 'toggleUserStatus']);

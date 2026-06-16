@@ -606,6 +606,7 @@
 {{-- ═══════════════════════════════════════════════════════════ --}}
 {{--  CURRENT USER ID  --}}
 {{-- ═══════════════════════════════════════════════════════════ --}}
+@section('main')
 <meta name="csrf-token" content="{{ csrf_token() }}">
 <script>window.__SS_CURRENT_USER_ID = {{ Auth::id() }};</script>
 
