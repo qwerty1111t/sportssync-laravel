@@ -386,4 +386,33 @@ class SuperadminController extends Controller
             Log::warning('[SuperadminDashboard] Failed to log activity: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Serve the legacy adminlanding_page.php (superadmin_adminlanding_page.php).
+     * This action sets up globals and includes the legacy PHP file.
+     */
+    public function legacyAdminLanding()
+    {
+        try {
+            // Get the Laravel DB connection as $pdo
+            $pdo = DB::connection()->getPdo();
+            
+            // Set $pdo as a GLOBAL variable so the included PHP file can access it
+            // When PHP includes a file, local vars from the calling function are NOT accessible
+            // The included file must use 'global $pdo;' or $GLOBALS['pdo'] to access this
+            $GLOBALS['pdo'] = $pdo;
+            
+            // Get current user for the legacy file
+            $user = Auth::user();
+            
+            // Include the legacy PHP file
+            // The file is in public/ directory
+            include public_path('superadmin_adminlanding_page.php');
+            
+            return response('', 200);
+        } catch (\Throwable $e) {
+            Log::error('[SuperadminController@legacyAdminLanding] ' . $e->getMessage() . ' at ' . $e->getFile() . ':' . $e->getLine());
+            abort(500, 'Admin landing error: ' . $e->getMessage());
+        }
+    }
 }

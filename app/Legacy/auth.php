@@ -28,14 +28,19 @@
 // ============================================================
 
 // Attempt to load DB connection for legacy PHP files
-$pdo = null;
-try {
-    if (file_exists(__DIR__ . '/db.php')) {
-        include_once __DIR__ . '/db.php';
-        if (!isset($pdo) || !$pdo) $pdo = null;
-    }
-} catch (Throwable $e) {
+// Priority: $GLOBALS['pdo'] (from Laravel controller) > own connection
+if (isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof \PDO) {
+    $pdo = $GLOBALS['pdo'];
+} else {
     $pdo = null;
+    try {
+        if (file_exists(__DIR__ . '/db.php')) {
+            include_once __DIR__ . '/db.php';
+            if (!isset($pdo) || !$pdo) $pdo = null;
+        }
+    } catch (Throwable $e) {
+        $pdo = null;
+    }
 }
 
 // ── Inline currentUser alternative (reads from $_SESSION only) ────────────────────────────

@@ -4,11 +4,18 @@
 // When included from Laravel wrappers, controllers may provide $pdo.
 //
 // Credentials priority:
-//   1. Environment variables (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD)
-//   2. Laravel config('database.connections.mysql.*') if available
-//   3. Hardcoded localhost fallback for local XAMPP development
+//   1. $GLOBALS['pdo'] (from Laravel controller via legacyAdminLanding)
+//   2. Environment variables (DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD)
+//   3. Laravel config('database.connections.mysql.*') if available
+//   4. Hardcoded localhost fallback for local XAMPP development
 // ============================================================
 if (defined('LARAVEL_WRAPPER')) {
+    return;
+}
+
+// Use Laravel's PDO connection if already provided via $GLOBALS
+if (isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof \PDO) {
+    $pdo = $GLOBALS['pdo'];
     return;
 }
 
