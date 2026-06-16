@@ -46,16 +46,11 @@ class NewPasswordController extends Controller
                     return; // Do not reset non-superadmin accounts here
                 }
 
-                if (method_exists($user, 'forceFill')) {
-                    $user->forceFill([
-                        'password' => Hash::make($request->password),
-                        'remember_token' => Str::random(60),
-                    ])->save();
-                } else {
-                    $user->password = Hash::make($request->password);
-                    $user->remember_token = Str::random(60);
-                    $user->save();
-                }
+                // IMPORTANT: Do NOT pre-hash. User model's 'password' => 'hashed' cast handles hashing.
+                $user->forceFill([
+                    'password' => $request->password,
+                    'remember_token' => Str::random(60),
+                ])->save();
 
                 event(new PasswordReset($user));
             }

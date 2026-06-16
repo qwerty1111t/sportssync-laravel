@@ -43,16 +43,12 @@ class NewPasswordController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user) use ($request) {
-                if (method_exists($user, 'forceFill')) {
-                    $user->forceFill([
-                        'password' => Hash::make($request->password),
-                        'remember_token' => Str::random(60),
-                    ])->save();
-                } else {
-                    $user->password = Hash::make($request->password);
-                    $user->remember_token = Str::random(60);
-                    $user->save();
-                }
+                // IMPORTANT: Do NOT pre-hash the password. The User model's 'password' => 'hashed' cast
+                // automatically hashes it on save(). Pre-hashing causes double-hashing and login failures.
+                $user->forceFill([
+                    'password' => $request->password, // Let model's cast handle hashing
+                    'remember_token' => Str::random(60),
+                ])->save();
 
                 event(new PasswordReset($user));
             }
