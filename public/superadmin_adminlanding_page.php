@@ -12,32 +12,6 @@
 require_once __DIR__ . '/db.php'; // provides $pdo (PDO)
 
 // Define currentUser() using Laravel's Auth facade
-if (!function_exists('currentUser')) {
-    function currentUser(): ?array {
-        if (class_exists('Illuminate\Support\Facades\Auth')) {
-            $u = \Illuminate\Support\Facades\Auth::user();
-            if ($u) {
-                return [
-                    'id' => $u->id,
-                    'username' => $u->username ?? $u->name ?? 'admin',
-                    'role' => $u->role ?? 'admin',
-                ];
-            }
-        }
-        // Fallback for direct access: try legacy session-based auth
-        @session_start();
-        global $pdo;
-        if (!empty($_SESSION['SS_USER_ID']) && $pdo) {
-            try {
-                $stmt = $pdo->prepare('SELECT id, username, role FROM users WHERE id = ? LIMIT 1');
-                $stmt->execute([$_SESSION['SS_USER_ID']]);
-                $u = $stmt->fetch(PDO::FETCH_ASSOC);
-                if ($u) return $u;
-            } catch (Throwable $e) {}
-        }
-        return null;
-    }
-}
 
 // Load legacy auth helpers (for requireLogin, session helpers, etc.)
 require_once __DIR__ . '/auth.php';
