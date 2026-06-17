@@ -433,38 +433,38 @@ function initializeTimersFromServerState() {
     const mid = getMatchId() || 'live';
 
     // Fetch timer state from server
-    fetch('timer.php?match_id=' + encodeURIComponent(mid), { cache: 'no-store', credentials: 'include' })
-      .then(r => r.json())
-      .then(j => {
+    fetch('/basketball-admin/timer?match_id=' + encodeURIComponent(mid), { cache: 'no-store', credentials: 'include' })
+    .then(r => r.json())
+    .then(j => {
         if (j && j.success && j.payload) {
-          const payload = j.payload;
+            const payload = j.payload;
 
-          if (payload.gameTimer) payload.gameTimer._timerControl = true;
-          if (payload.shotClock) payload.shotClock._timerControl = true;
+            if (payload.gameTimer) payload.gameTimer._timerControl = true;
+            if (payload.shotClock) payload.shotClock._timerControl = true;
 
-          // Copilot: Insert a guard before the applyGameTimer and applyShotClock calls below.
-          // MUST: add `if (_lastTimerControlTs > 0) return;` as the first statement before both apply calls.
-          // Reason: a live timer_update from another admin already set the correct anchor;
-          //         applying stale server data here would overwrite it and cause desync.
-          // MUST NOT: remove or reorder the applyGameTimer / applyShotClock calls below the guard.
-          // MUST NOT: change the fetch URL, response parsing, or catch block.
-          // FIX: game timer path only — Apply game timer independently
-          if (payload.gameTimer && (!(_lastTimerControlTs > 0 && payload.gameTimer.ts && payload.gameTimer.ts < _lastTimerControlTs))) {
-            applyGameTimer(payload.gameTimer);
-          }
+            // Copilot: Insert a guard before the applyGameTimer and applyShotClock calls below.
+            // MUST: add `if (_lastTimerControlTs > 0) return;` as the first statement before both apply calls.
+            // Reason: a live timer_update from another admin already set the correct anchor;
+            // applying stale server data here would overwrite it and cause desync.
+            // MUST NOT: remove or reorder the applyGameTimer / applyShotClock calls below the guard.
+            // MUST NOT: change the fetch URL, response parsing, or catch block.
+            // FIX: game timer path only — Apply game timer independently
+            if (payload.gameTimer && (!(_lastTimerControlTs > 0 && payload.gameTimer.ts && payload.gameTimer.ts < _lastTimerControlTs))) {
+                applyGameTimer(payload.gameTimer);
+            }
 
-          // FIX: shot clock path only — Apply shot clock independently
-          if (payload.shotClock && (!(_lastTimerControlTs > 0 && payload.shotClock.ts && payload.shotClock.ts < _lastTimerControlTs))) {
-            applyShotClock(payload.shotClock);
-          }
+            // FIX: shot clock path only — Apply shot clock independently
+            if (payload.shotClock && (!(_lastTimerControlTs > 0 && payload.shotClock.ts && payload.shotClock.ts < _lastTimerControlTs))) {
+                applyShotClock(payload.shotClock);
+            }
         }
-      })
-      .catch(err => {
+    })
+    .catch(err => {
         console.warn('Failed to load timer state from server:', err);
         // Fall back to default timer initialization
         gtRender();
         scRenderFrame();
-      });
+    });
   } catch (e) {
     console.error('Error initializing timers from server state:', e);
     // Fall back to default timer initialization
@@ -902,19 +902,19 @@ async function bbResetMatch(force, clearPlayers) {
     };
 
     // Persist cleared roster to state.php under existing match_id
-    fetch('state.php', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ match_id: mid, payload: clearedRosterPayload, meta: { action: 'reset_match', clientId: CLIENT_ID }, confirmed: true })
+    fetch('/basketball-admin/state', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ match_id: mid, payload: clearedRosterPayload, meta: { action: 'reset_match', clientId: CLIENT_ID }, confirmed: true })
     }).catch(() => {});
 
     // Persist cleared timers to timer.php under existing match_id
     try {
-      await fetch('timer.php', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ match_id: mid, game_time: 600, shot_clock: 24, is_running: false, last_update_at: resetTs, gameTimer: clearedTimerPayload.gameTimer, shotClock: clearedTimerPayload.shotClock, meta: { control: 'reset', clientId: CLIENT_ID } })
-      });
+        await fetch('/basketball-admin/timer', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ match_id: mid, game_time: 600, shot_clock: 24, is_running: false, last_update_at: resetTs, gameTimer: clearedTimerPayload.gameTimer, shotClock: clearedTimerPayload.shotClock, meta: { control: 'reset', clientId: CLIENT_ID } })
+        });
     } catch (_) {}
 
     // Broadcast reset_match to all other admin devices via WS
@@ -1170,7 +1170,7 @@ async function loadStateFromServerIfMissing() {
     // skip when no valid numeric match id available (avoid match_id=0)
     if (!mid) { console.warn('Invalid match_id, using live'); }
     console.log('Fetching state from server for match_id:', mid);
-    const res = await fetch('state.php?match_id=' + encodeURIComponent(mid) + '&t=' + Date.now(), { cache: 'no-store', credentials: 'include' });
+    const res = await fetch('/basketball-admin/state?match_id=' + encodeURIComponent(mid) + '&t=' + Date.now(), { cache: 'no-store', credentials: 'include' });
     const j = await res.json();
     console.log('Server response:', j);
     if (j && j.success) {
@@ -1195,7 +1195,7 @@ async function loadStateFromServerIfMissing() {
         let _usedTimerPayload = false;
         try {
           console.log('Fetching timer state for match_id:', mid);
-          const tRes = await fetch('timer.php?match_id=' + encodeURIComponent(mid), { cache: 'no-store', credentials: 'include' });
+          const tRes = await fetch('/basketball-admin/timer?match_id=' + encodeURIComponent(mid), { cache: 'no-store', credentials: 'include' });
           const tj = await tRes.json();
           console.log('Timer response:', tj);
           if (tj && tj.success && tj.payload) {
@@ -1876,12 +1876,12 @@ function persistRosterStateToServer(payload) {
     // FIX: decoupled from timer — Send ONLY roster payload (guaranteed no timers)
     try {
       const outgoing = payload || buildRosterOnlyPayload(); // FIX: decoupled from timer
-      fetch('state.php', {
-        method: 'POST',
-        headers: extraHeaders,
-        credentials: 'include',
-        body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload: outgoing }),
-        keepalive: true
+      fetch('/basketball-admin/state', {
+      method: 'POST',
+      headers: extraHeaders,
+      credentials: 'include',
+      body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload: outgoing }),
+      keepalive: true
       }).then(r => r.json()).catch(()=>{});
     } catch (_) {
       // Fallback: send payload as-is if serialization fails (very unlikely)
