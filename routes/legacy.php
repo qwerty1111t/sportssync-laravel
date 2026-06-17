@@ -52,4 +52,5 @@ Route::middleware(['auth', 'legacy.session'])->group(function () {
 Route::any('/{sport}/{path?}', [LegacyProxyController::class, 'handle'])
     ->where('sport', 'badminton-admin|basketball-admin|tabletennis-admin|darts-admin|volleyball-admin|analytics')
     ->where('path', '.*')
-    ->middleware(['auth', 'legacy.session']);
+    ->middleware(['auth', 'legacy.session'])
+        ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
