@@ -845,8 +845,8 @@
             <div class="sport-status-list">
               @foreach ($sports as $sp)
                 @php
-                  $spName = $sp['name'] ?? $sp->name ?? '';
-                  $spStatus = $sp['status'] ?? $sp->status ?? 'inactive';
+                  $spName = $sp->name ?? '';
+                  $spStatus = $sp->status ?? 'inactive';
                   $isAct = ($spStatus === 'active');
                   $sportEmojis = ['badminton' => '🏸', 'basketball' => '🏀', 'darts' => '🎯', 'table tennis' => '🏓', 'volleyball' => '🏐'];
                   $em = $sportEmojis[strtolower($spName)] ?? '🏅';
