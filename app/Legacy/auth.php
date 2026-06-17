@@ -116,6 +116,19 @@ function requireLogin(string $redirect = '/superadmin/login'): array {
     return $u;
 }
 
+// ── currentUser — wrapper for legacy files that call this function ──
+function currentUser(): ?array {
+    // When running inside the Laravel wrapper (LegacyProxyController),
+    // we already have the user via Auth::user() set by legacy.session middleware.
+    // Fall back to _legacyCurrentUser() which reads $_SESSION.
+    if (defined('LARAVEL_WRAPPER') && LARAVEL_WRAPPER) {
+        // Try Auth::user() if available (set by LegacySessionMiddleware via $_SESSION)
+        $u = _legacyCurrentUser();
+        if ($u) return $u;
+    }
+    return _legacyCurrentUser();
+}
+
 // ── Require role gate ───────────────────────────────────────────
 function requireRole(string $role, string $redirect = '/superadmin/login'): array {
     $u = requireLogin($redirect);

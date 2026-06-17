@@ -1,10 +1,9 @@
 <?php
 // Legacy DB config for Basketball Admin UI
-// When included from Laravel wrapper we skip creating globals
-if (defined('LARAVEL_WRAPPER')) {
-    // Laravel controller provides $mysqli when needed — do nothing here.
-    return;
-}
+// This file creates a $mysqli global MySQLi connection for all legacy PHP files.
+// When included from LegacyProxyController (LARAVEL_WRAPPER mode), the controller
+// does NOT provide its own $mysqli — so we must always connect here.
+// The LARAVEL_WRAPPER constant is set by the controller but does NOT skip DB setup.
 
 // Check if mysqli extension is loaded
 if (!class_exists('mysqli')) {

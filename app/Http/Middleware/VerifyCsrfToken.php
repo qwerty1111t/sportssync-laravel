@@ -23,5 +23,12 @@ class VerifyCsrfToken extends Middleware
         'DARTS%20ADMIN%20UI/update_match.php',
         'TABLE%20TENNIS%20ADMIN%20UI/update_match.php',
         'Volleyball%20Admin%20UI/update_match.php',
+        // Legacy proxy routes — exclude all POST endpoints under each sport admin
+        'badminton-admin/*',
+        'basketball-admin/*',
+        'tabletennis-admin/*',
+        'darts-admin/*',
+        'volleyball-admin/*',
+        'analytics/*',
     ];
 }

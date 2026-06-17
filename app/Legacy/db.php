@@ -9,9 +9,9 @@
 //   3. Laravel config('database.connections.mysql.*') if available
 //   4. Hardcoded localhost fallback for local XAMPP development
 // ============================================================
-if (defined('LARAVEL_WRAPPER')) {
-    return;
-}
+// NOTE: We no longer skip DB setup under LARAVEL_WRAPPER.
+// LegacyProxyController does NOT provide $pdo — we must connect here.
+// $GLOBALS['pdo'] from Laravel controller is still respected if present.
 
 // Use Laravel's PDO connection if already provided via $GLOBALS
 if (isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof \PDO) {

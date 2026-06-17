@@ -1,8 +1,8 @@
 <?php
-// Legacy db_config — skip when wrapped by Laravel
-if (defined('LARAVEL_WRAPPER')) {
-    return;
-}
+// Legacy db_config for TABLE TENNIS ADMIN UI
+// This file creates a $mysqli global MySQLi connection for all legacy PHP files.
+// When included from LegacyProxyController (LARAVEL_WRAPPER mode), the controller
+// does NOT provide its own $mysqli — so we must always connect here.
 
 // Check if mysqli extension is loaded
 if (!class_exists('mysqli')) {
@@ -33,6 +33,7 @@ define('DB_PASS', $dbPass);
 define('DB_NAME', $dbName);
 define('DB_PORT', $dbPort);
 
+mysqli_report(MYSQLI_REPORT_OFF);
 $mysqli = @new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME, (int)DB_PORT);
 if ($mysqli->connect_errno) {
     @file_put_contents(__DIR__ . '/tabletennis_debug.log', date('[Y-m-d H:i:s] ') . "DB connect error: " . $mysqli->connect_error . "\n", FILE_APPEND);
