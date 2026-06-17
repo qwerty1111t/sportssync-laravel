@@ -568,7 +568,7 @@ async function _fetchInitialState(mid) {
   // Initial roster/stat hydrate only. Timer hydrate must come from WS server get_state/last_state.
   if (!mid) return;
   try {
-    const r = await fetch('state.php?match_id=' + encodeURIComponent(mid) + '&t=' + Date.now(), { cache: 'no-store', credentials: 'include' });
+  const r = await fetch('/basketball-admin/state?match_id=' + encodeURIComponent(mid) + '&t=' + Date.now(), { cache: 'no-store', credentials: 'include' });
     const j = await r.json();
     const payload = j && (j.payload || j.state);
     if (j && j.success && payload) _ingestPayload(payload);

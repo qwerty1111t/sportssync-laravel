@@ -1885,7 +1885,7 @@ function persistRosterStateToServer(payload) {
       }).then(r => r.json()).catch(()=>{});
     } catch (_) {
       // Fallback: send payload as-is if serialization fails (very unlikely)
-      fetch('state.php', { method: 'POST', headers: extraHeaders, credentials: 'include', body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload }), keepalive: true }).catch(()=>{});
+      fetch('/basketball-admin/state', { method: 'POST', headers: extraHeaders, credentials: 'include', body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload }), keepalive: true }).catch(()=>{});
     }
   } catch (_) {}
 }
@@ -2543,7 +2543,7 @@ function flushStateOnUnload() {
           try { delete outgoing.shotClock; } catch(_){}
           // Use fetch with keepalive so the request survives page unload
           try {
-            fetch('state.php', {
+          fetch('/basketball-admin/state', {
               method: 'POST',
               headers: extraHeaders,
               credentials: 'include',
@@ -2615,7 +2615,7 @@ function schedulePersistToServer(payload) {
           const outgoing = JSON.parse(JSON.stringify(payload || {}));
           try { delete outgoing.gameTimer; } catch(_){}
           try { delete outgoing.shotClock; } catch(_){}
-          fetch('state.php', {
+          fetch('/basketball-admin/state', {
             method: 'POST',
             headers: extraHeaders,
             credentials: 'include',
@@ -2647,7 +2647,7 @@ function persistStateImmediately(payload) {
       const outgoing = JSON.parse(JSON.stringify(payload || {}));
       try { delete outgoing.gameTimer; } catch(_){}
       try { delete outgoing.shotClock; } catch(_){}
-      fetch('state.php', {
+      fetch('/basketball-admin/state', {
         method: 'POST',
         headers: extraHeaders,
         credentials: 'include',
@@ -2656,7 +2656,7 @@ function persistStateImmediately(payload) {
       }).then(r => r.json()).catch(()=> {});
     } catch (_) {
       // Fallback: send payload as-is if serialization fails (very unlikely)
-      fetch('state.php', { method: 'POST', headers: extraHeaders, credentials: 'include', body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload }), keepalive: true }).catch(()=> {});
+      fetch('/basketball-admin/state', { method: 'POST', headers: extraHeaders, credentials: 'include', body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload }), keepalive: true }).catch(()=> {});
     }
   } catch (_) {}
 }
@@ -2791,7 +2791,7 @@ function immediatePersistControl(control, timerType) {
       });
       // Debug: log outgoing timer control request
       try { console.debug('[immediatePersistControl] POST body:', gameTimerPayload, shotClockPayload, 'meta control=', control, 'timerType=', timerType); } catch(_) {}
-      fetch('timer.php', { method: 'POST', headers: extraHeaders, credentials: 'include', body, keepalive: true })
+      fetch('/basketball-admin/timer', { method: 'POST', headers: extraHeaders, credentials: 'include', body, keepalive: true })
         .then(res => res.json())
         .then(j => {
           try { console.debug('[immediatePersistControl] timer.php response:', j); } catch(_) {}
@@ -2914,7 +2914,7 @@ function persistTimersToServer(control) {
     };
     if (control) body.meta = { control: control, clientId: CLIENT_ID };
     try {
-      fetch('timer.php', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(function(){});
+    fetch('/basketball-admin/timer', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(function(){});
     } catch (_) {}
   } catch (_) {}
 }
@@ -3449,7 +3449,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Persist authoritative state for reload/reconnect and for backend /emit when available.
     try {
-      fetch('timer.php', {
+    fetch('/basketball-admin/timer', {
         method: 'POST',
         credentials: 'include',
         headers: _headers(),
@@ -3537,7 +3537,7 @@ document.addEventListener('DOMContentLoaded', function() {
     try { _lastOutgoingSerialized = JSON.stringify(p); } catch (_) {}
     _sendWS(msg);
     try {
-      fetch('state.php', {
+    fetch('/basketball-admin/state', {
         method: 'POST', credentials: 'include', headers: _headers(), keepalive: true,
         body: JSON.stringify({ match_id: mid, payload: p })
       }).catch(function () {});
@@ -3628,7 +3628,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const matchId = mid ? String(mid) : (typeof getMatchId === 'function' ? String(getMatchId()) : 'live');
         if (!matchId || matchId === '0') return false;
 
-        const res = await fetch('timer.php?match_id=' + encodeURIComponent(matchId) + '&t=' + Date.now(), {
+        const res = await fetch('/basketball-admin/timer?match_id=' + encodeURIComponent(matchId) + '&t=' + Date.now(), {
           cache: 'no-store',
           credentials: 'include'
         });
