@@ -133,8 +133,9 @@ Route::middleware(['auth', 'superadmin', PreventBackHistory::class])->group(func
     // This route provides Laravel bootstrapping ($pdo, currentUser(), helpers)
     // so the legacy PHP file can work within Laravel's auth system.
     // Admin landing page - legacy PHP file served via controller action
-    Route::get('/superadmin/admin-landing', [SuperadminController::class, 'legacyAdminLanding'])
-        ->name('superadmin.admin-landing');
+    // DEPRECATED: This route will be removed in the next release. Use /superadmin/landing instead.
+    // Route removed: legacy admin landing page is deprecated and will be deleted.
+    // Use /superadmin/landing (Blade view) instead.
 
     // API endpoints for admin-landing CRUD operations
     Route::post('/superadmin/admin-landing/toggle-user-status', [SuperadminController::class, 'toggleUserStatus']);
