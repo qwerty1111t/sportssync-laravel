@@ -781,7 +781,7 @@
               @if (empty($users))
                 <tr><td colspan="4" class="dt-empty">No users found.</td></tr>
               @else
-                @foreach (array_slice($users, 0, 10) as $ru)
+                @foreach ($users->take(10) as $ru)
                   @php
                     $initial = strtoupper(substr($ru['username'] ?? $ru->username, 0, 1));
                     $role = $ru['role'] ?? $ru->role ?? 'viewer';
