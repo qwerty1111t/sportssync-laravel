@@ -113,20 +113,7 @@ class SuperadminController extends Controller
             $feedbackCount = DB::table('feedbacks')->count();
         } catch (\Throwable $e) {}
 
-        return view('superadmin.admin-landing', [
-            'user'               => $user,
-            'totalUsers'         => $totalUsers,
-            'eventsThisMonth'    => $eventsThisMonth,
-            'activeSportsCount'  => $activeSportsCount,
-            'sports'             => $sports,
-            'users'              => $users,
-            'pendingApplicants'  => $pendingApplicants,
-            'pendingCount'       => $pendingCount,
-            'activityLog'        => $activityLog,
-            'allMatches'         => $allMatches,
-            'maintenanceMode'    => $maintenanceMode,
-            'feedbackCount'      => $feedbackCount,
-        ]);
+        return $this->legacyAdminLanding();
     }
 
     /**
