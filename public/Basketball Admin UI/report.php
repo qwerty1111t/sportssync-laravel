@@ -569,7 +569,7 @@ $jsonMatch = json_encode([
 <!-- EXPORT TOOLBAR -->
 <div class="export-bar no-print">
   <span>Match Report #<?= $matchId ?></span>
-  <button class="btn-export" onclick="window.open('basketball_matches_admin.php','_blank')">📚 Match History</button>
+  <button class="btn-export" onclick="window.open('/basketball-admin/basketball_matches_admin','_blank')">📚 Match History</button>
   <button class="btn-export" onclick="if(confirm('Warning: data can be lost. Do you want to go back to the admin page?')) { window.location = '/'; }">&#11013; Back</button>
   <button class="btn-export btn-excel" onclick="exportExcel()">&#11015; Export Excel</button>
   <button class="btn-export btn-print" onclick="window.print()">&#128438; Print PDF</button>
@@ -592,12 +592,12 @@ $jsonMatch = json_encode([
   async function bbNewMatch() {
     try {
       if (!confirm('Create a new match and reset live state for all admins?')) return;
-      const res = await fetch('new_match.php', { method: 'POST', credentials: 'include' });
+      const res = await fetch('/basketball-admin/new_match', { method: 'POST', credentials: 'include' });
       const j = await res.json();
       if (j && j.success) {
         try { sessionStorage.setItem('basketball_match_id', String(j.match_id)); } catch(e){}
         // navigate to admin which will load the new match context
-        window.location.href = 'index.php';
+        window.location.href = '/basketball-admin';
         return;
       }
       alert('Failed to create new match');

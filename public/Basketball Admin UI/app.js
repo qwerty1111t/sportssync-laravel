@@ -808,7 +808,7 @@ async function bbSaveFile() {
   } catch (_) {}
 
   try {
-    const res = await fetch('save_game.php', {
+    const res = await fetch('/basketball-admin/save_game', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
@@ -961,7 +961,7 @@ async function bbDeleteSavedMatch() {
     const ok = confirm('Warning: this will PERMANENTLY delete the saved match and its players from the server database. Continue?');
     if (!ok) return;
 
-    const res = await fetch('delete_match.php', {
+    const res = await fetch('/basketball-admin/delete_match', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
@@ -2624,7 +2624,7 @@ function schedulePersistToServer(payload) {
           }).then(r => r.json()).catch(()=>{});
         } catch (_) {
           // Fallback: send payload as-is if serialization fails (very unlikely)
-          fetch('state.php', { method: 'POST', headers: extraHeaders, credentials: 'include', body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload }), keepalive: true }).catch(()=>{});
+          fetch('/basketball-admin/state', { method: 'POST', headers: extraHeaders, credentials: 'include', body: JSON.stringify({ match_id: (mid && String(mid) !== '0') ? mid : 'live', payload }), keepalive: true }).catch(()=>{});
         }
       } catch (_) {}
     }, 400);
@@ -3092,7 +3092,7 @@ async function bbNewMatch() { // FIX: new match broadcast
     } catch (_) {}
     if (window.__newMatchPending) return;
     window.__newMatchPending = true;
-    const res = await fetch('new_match.php', { method: 'POST', credentials: 'include' }); // FIX: new match broadcast
+    const res = await fetch('/basketball-admin/new_match', { method: 'POST', credentials: 'include' }); // FIX: new match broadcast
     const j = await res.json(); // FIX: new match broadcast
     if (!j || !j.success) { window.__newMatchPending = false; try { showToast('Failed to create new match'); } catch(_) {} return; } // FIX: new match broadcast
 

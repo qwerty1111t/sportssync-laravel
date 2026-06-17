@@ -334,8 +334,8 @@ a{text-decoration:none;color:inherit}
             <td style="color:var(--text-muted)"><?= htmlspecialchars($m['committee'] ?? '') ?></td>
             <td style="color:var(--text-muted);font-size:0.82rem;white-space:nowrap"><?= htmlspecialchars($m['created_at']) ?></td>
             <td style="white-space:nowrap;display:flex;gap:8px;">
-              <a class="ss-btn-link" href="report.php?match_id=<?= (int)$m['match_id'] ?>" target="_blank">Report</a>
-              <a class="ss-btn ss-btn-sm ss-btn-secondary" href="edit_match.php?match_id=<?= (int)$m['match_id'] ?>">✎ Edit</a>
+              <a class="ss-btn-link" href="/basketball-admin/report?match_id=<?= (int)$m['match_id'] ?>" target="_blank">Report</a>
+              <a class="ss-btn ss-btn-sm ss-btn-secondary" href="/basketball-admin/edit_match?match_id=<?= (int)$m['match_id'] ?>">✎ Edit</a>
               <button type="button" class="ss-btn ss-btn-sm ss-btn-danger" onclick="bbResetMatch(<?= (int)$m['match_id'] ?>")>Reset</button>
             </td>
           </tr>
@@ -376,7 +376,7 @@ a{text-decoration:none;color:inherit}
 (function(){ try{ const el=document.getElementById('currentMatchId'); const id = sessionStorage.getItem('basketball_match_id'); if (id) el.textContent = id; else el.textContent = '(none)'; }catch(e){} })();
 document.getElementById('chkAll').addEventListener('change', function(){ document.querySelectorAll('.chk').forEach(c=>c.checked=this.checked); });
 document.getElementById('refreshBtn').addEventListener('click', function(){ location.reload(); });
-function bbResetMatch(id) { if (!confirm('Reset match ' + id + '? This will clear saved data.')) return; fetch('delete_match.php', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: id }) }).then(r => r.json()).then(j => { if (j && j.success) { alert('Match reset'); location.reload(); } else { alert('Reset failed: ' + (j && j.error ? j.error : 'Unknown')); } }).catch(e=>{console.error(e); alert('Reset request failed');}); }
+function bbResetMatch(id) { if (!confirm('Reset match ' + id + '? This will clear saved data.')) return; fetch('/basketball-admin/delete_match', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: id }) }).then(r => r.json()).then(j => { if (j && j.success) { alert('Match reset'); location.reload(); } else { alert('Reset failed: ' + (j && j.error ? j.error : 'Unknown')); } }).catch(e=>{console.error(e); alert('Reset request failed');}); }
 document.getElementById('deleteSelected').addEventListener('click', function(){ 
   const ids = Array.from(document.querySelectorAll('.chk:checked')).map(i=>parseInt(i.value,10)); 
   if (!ids.length) { 
@@ -386,7 +386,7 @@ document.getElementById('deleteSelected').addEventListener('click', function(){
   const msg = `Delete ${ids.length} match(es)?\n\n⚠️  This will permanently remove:\n• Match records\n• All player statistics\n• Game reports\n\nThis action CANNOT be undone.`;
   if (!confirm(msg)) 
     return; 
-  fetch('delete_match.php', { 
+  fetch('/basketball-admin/delete_match', {
     method: 'POST', 
     credentials: 'include', 
     headers: { 'Content-Type': 'application/json' }, 
@@ -402,7 +402,7 @@ document.getElementById('deleteSelected').addEventListener('click', function(){
     })
     .catch(e=>{console.error(e); alert('Delete request failed');}); 
 });
-document.getElementById('resetSelected').addEventListener('click', function(){ const ids = Array.from(document.querySelectorAll('.chk:checked')).map(i=>parseInt(i.value,10)); if (!ids.length) { alert('Select at least one match to reset.'); return; } if (!confirm('Reset selected match(es)?')) return; Promise.all(ids.map(id => fetch('delete_match.php', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: id }) }).then(r=>r.json()).catch(()=>({success:false})) )).then(results=>{ alert('Reset completed'); location.reload(); }).catch(e=>{console.error(e); alert('Reset request failed'); }); });
+document.getElementById('resetSelected').addEventListener('click', function(){ const ids = Array.from(document.querySelectorAll('.chk:checked')).map(i=>parseInt(i.value,10)); if (!ids.length) { alert('Select at least one match to reset.'); return; } if (!confirm('Reset selected match(es)?')) return; Promise.all(ids.map(id => fetch('/basketball-admin/delete_match', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ match_id: id }) }).then(r=>r.json()).catch(()=>({success:false})) )).then(results=>{ alert('Reset completed'); location.reload(); }).catch(e=>{console.error(e); alert('Reset request failed'); }); });
 try {
   const expBtn = document.getElementById('exportCsvBtn');
   if (expBtn) expBtn.addEventListener('click', function(){ const params = new URLSearchParams(location.search); params.set('export','csv'); location.href = '?' + params.toString(); });

@@ -21,7 +21,7 @@ if (!defined('LARAVEL_WRAPPER')) {
       <a href="/" class="back-btn">← Back to Dashboard</a>
       <button class="btn-new" onclick="bbNewMatch()" title="Create a new match and reset live state">➕ New Match</button>
       <button class="basketball-btn-reset" onclick="bbResetMatch(false, true)" title="Reset match and clear all data">Reset</button>
-      <button class="btn-matches" onclick="window.location.href='basketball_matches_admin.php'" title="Open match history">📚 Matches</button>      
+      <button class="btn-matches" onclick="window.location.href='/basketball-admin/basketball_matches_admin'" title="Open match history">📚 Matches</button>
     </div>
   </div>
   <div class="nav-center">
