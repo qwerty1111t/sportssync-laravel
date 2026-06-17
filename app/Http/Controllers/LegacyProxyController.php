@@ -58,6 +58,7 @@ class LegacyProxyController extends Controller
                 'basketball_matches_admin' => 'basketball_matches_admin.php',
                 'timer' => 'timer.php',
                 'state' => 'state.php',
+                'new_match' => 'new_match.php',
                 'save_game' => 'save_game.php',
                 'delete_match' => 'delete_match.php',
                 'edit_match' => 'edit_match.php',

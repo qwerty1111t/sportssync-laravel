@@ -816,7 +816,7 @@ async function bbSaveFile() {
     });
     const data = await res.json();
     if (data && data.success) {
-      const reportUrl = 'report.php?match_id=' + data.match_id;
+      const reportUrl = '/basketball-admin/report?match_id=' + data.match_id;
       try { sessionStorage.setItem('basketball_match_id', String(data.match_id)); } catch (e) {}
       try { sessionStorage.setItem('shouldClearPersistedOnBack:basketball', '1'); } catch (e) {}
       // Redirect to the report in the same tab (avoids popup-blocking issues)
